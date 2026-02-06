@@ -1,0 +1,10 @@
+# Core dependencies for AgentCore Runtime deployment
+bedrock-agentcore>=1.2.0
+langchain>=1.0.0
+langchain-aws>=1.2.2
+langgraph>=1.0.8
+langgraph-prebuilt>=1.0.7
+boto3>=1.42.0
+
+# Observability (recommended for AgentCore)
+opentelemetry-instrumentation-langchain>=0.51.0
