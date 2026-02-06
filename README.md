@@ -60,16 +60,6 @@ agentcore_demo/
 └── README.md
 ```
 
-## Enabling Bedrock Model Access
-
-Before running any agent, enable model access in AWS:
-
-1. Go to [Amazon Bedrock Console](https://console.aws.amazon.com/bedrock)
-2. Navigate to **Model access** in the left sidebar
-3. Click **Manage model access**
-4. Enable **Claude Sonnet 4** (or your preferred model)
-5. Wait for access to be granted (usually instant)
-
 ## Key Implementation Pattern
 
 Both local and deployed agents use `stream_mode="messages"` for reliable streaming:
