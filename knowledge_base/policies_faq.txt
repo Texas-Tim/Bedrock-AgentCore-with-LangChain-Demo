@@ -1,0 +1,30 @@
+AcmeCorp Policies and FAQ
+
+Return Policy:
+- 30-day money-back guarantee for new customers
+- Prorated refunds available for annual contracts (minus setup fees)
+- No refunds after 90 days of service
+
+Data Security:
+- SOC 2 Type II certified
+- GDPR and CCPA compliant
+- Data encrypted at rest and in transit (AES-256)
+- Regular third-party security audits
+- Customer data stored in US-based AWS data centers
+
+Common Questions:
+
+Q: What is the typical implementation timeline?
+A: Standard implementations take 4-8 weeks. Complex enterprise deployments may require 12-16 weeks.
+
+Q: Do you offer free trials?
+A: Yes, 14-day free trials available for AcmeCRM Pro. ERP trials are case-by-case.
+
+Q: Can I integrate with existing systems?
+A: Yes, we provide REST APIs and pre-built connectors for Salesforce, SAP, Oracle, and 50+ other platforms.
+
+Q: What training is included?
+A: All packages include 2 days of virtual training. On-site training available for additional fee.
+
+Q: Is there a contract commitment?
+A: Annual contracts required for enterprise products. Month-to-month available for AcmeCRM Pro at higher rates.

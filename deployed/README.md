@@ -42,6 +42,24 @@ cp .bedrock_agentcore.yaml.example .bedrock_agentcore.yaml
 # Edit .bedrock_agentcore.yaml and replace YOUR_ACCOUNT_ID with your AWS account ID
 ```
 
+### Configure Bedrock Agents Features (Optional)
+
+To enable GuardRails, Knowledge Base, or Memory, add environment variables to `.bedrock_agentcore.yaml`:
+
+```yaml
+agents:
+  langgraph_demo:
+    entrypoint: agent.py
+    environment:
+      BEDROCK_GUARDRAIL_ID: "your-guardrail-id"
+      BEDROCK_GUARDRAIL_VERSION: "1"
+      BEDROCK_KNOWLEDGE_BASE_ID: "your-kb-id"
+      BEDROCK_MEMORY_ID: "your-memory-id"
+    # ... rest of configuration
+```
+
+See the [Bedrock Agents Walkthrough](../docs/BEDROCK_AGENTS_WALKTHROUGH.md) for setup instructions.
+
 ## Step 3: Deploy to AWS
 
 ```bash
@@ -79,10 +97,43 @@ python invoke_deployed_agent.py "What is the weather in Seattle?"
 | File | Description |
 |------|-------------|
 | `agent.py` | LangGraph agent with `BedrockAgentCoreApp` wrapper |
+| `agent_with_all_features.py` | Agent with GuardRails, Knowledge Base, and Memory |
 | `invoke_deployed_agent.py` | Python SDK client to invoke deployed agent |
 | `requirements.txt` | Python dependencies |
 | `Dockerfile` | Container configuration for deployment |
 | `.bedrock_agentcore.yaml.example` | Template for deployment configuration |
+
+## Bedrock Agents Features
+
+The `agent_with_all_features.py` file demonstrates three powerful AWS Bedrock Agents features:
+
+### 1. GuardRails - Content Safety
+
+Content filtering and safety controls for production agents:
+- Block harmful content and PII
+- Enforce denied topics
+- Apply custom word filters
+
+### 2. Knowledge Bases - RAG
+
+Retrieval augmented generation for grounded responses:
+- Index your documents
+- Semantic search
+- Cite sources
+
+### 3. Memory - Conversation Persistence
+
+Persistent conversation state across sessions:
+- Remember previous interactions
+- Multi-user support
+- Automatic state management
+
+**Learn More:** See the [Bedrock Agents Walkthrough](../docs/BEDROCK_AGENTS_WALKTHROUGH.md) for detailed setup instructions.
+
+To deploy with these features:
+1. Set up resources in AWS Console (GuardRails, Knowledge Base, Memory)
+2. Add environment variables to `.bedrock_agentcore.yaml`
+3. Deploy: `agentcore launch`
 
 ## Configuration Reference
 

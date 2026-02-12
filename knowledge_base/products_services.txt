@@ -1,0 +1,25 @@
+AcmeCorp Products and Services
+
+1. AcmeCloud ERP
+   - Comprehensive enterprise resource planning platform
+   - Modules: Finance, HR, Supply Chain, Inventory Management
+   - Pricing: Starting at $50,000/year for up to 100 users
+   - Cloud-based with 99.9% uptime SLA
+
+2. AcmeCRM Pro
+   - Customer relationship management solution
+   - Features: Lead tracking, sales pipeline, email integration, reporting
+   - Pricing: $75/user/month (annual contract)
+   - Mobile apps available for iOS and Android
+
+3. AcmeAnalytics Suite
+   - Real-time business intelligence and data visualization
+   - AI-powered predictive analytics
+   - Integrates with AcmeCloud ERP and third-party systems
+   - Pricing: Custom quotes based on data volume
+
+4. Professional Services
+   - Implementation and onboarding (4-12 weeks typical)
+   - Custom integrations and API development
+   - Training programs and certification courses
+   - 24/7 technical support with premium plans

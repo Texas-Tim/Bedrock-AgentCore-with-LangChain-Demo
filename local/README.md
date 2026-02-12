@@ -65,7 +65,32 @@ python agent_with_memory.py
 
 Conversations are stored by `actor_id` and `thread_id`. Same IDs = continued conversation.
 
-### Option C: FastAPI HTTP Server
+### Option C: Agent with All Bedrock Features
+
+Comprehensive agent with GuardRails, Knowledge Base, and Memory:
+
+**Setup:**
+1. Follow the [Bedrock Agents Walkthrough](../docs/BEDROCK_AGENTS_WALKTHROUGH.md) to set up:
+   - **GuardRails**: Content filtering and safety controls
+   - **Knowledge Base**: RAG for document retrieval
+   - **Memory**: Conversation persistence
+
+2. Set environment variables:
+```bash
+export BEDROCK_GUARDRAIL_ID="your-guardrail-id"
+export BEDROCK_GUARDRAIL_VERSION="1"
+export BEDROCK_KNOWLEDGE_BASE_ID="your-kb-id"
+export BEDROCK_MEMORY_ID="your-memory-id"
+```
+
+**Run:**
+```bash
+python agent_with_all_features.py
+```
+
+All features are optional - the agent works with any combination enabled.
+
+### Option D: FastAPI HTTP Server
 
 REST API with Server-Sent Events (SSE) streaming:
 
@@ -93,12 +118,62 @@ curl -X POST http://localhost:8000/chat \
 curl http://localhost:8000/health
 ```
 
+## Bedrock Agents Features
+
+This project demonstrates three powerful AWS Bedrock Agents features:
+
+### 1. GuardRails - Content Safety
+
+GuardRails provide content filtering and safety controls:
+- Block harmful content (hate speech, violence, sexual content)
+- Filter personally identifiable information (PII)
+- Enforce denied topics (financial advice, medical advice, etc.)
+- Apply custom word filters
+
+**Quick Start:**
+```bash
+export BEDROCK_GUARDRAIL_ID="your-guardrail-id"
+export BEDROCK_GUARDRAIL_VERSION="1"
+python agent_with_all_features.py
+```
+
+### 2. Knowledge Bases - RAG
+
+Knowledge Bases enable retrieval augmented generation:
+- Index documents from S3, web crawlers, or other sources
+- Semantic search using vector embeddings
+- Ground agent responses in your own documents
+- Cite sources for transparency
+
+**Quick Start:**
+```bash
+export BEDROCK_KNOWLEDGE_BASE_ID="your-kb-id"
+python agent_with_all_features.py
+```
+
+### 3. Memory - Conversation Persistence
+
+Memory provides persistent conversation state:
+- Remember previous interactions across sessions
+- Maintain context over multiple turns
+- Support multiple users and conversation threads
+- Automatic state management
+
+**Quick Start:**
+```bash
+export BEDROCK_MEMORY_ID="your-memory-id"
+python agent_with_all_features.py
+```
+
+**Learn More:** See the [Bedrock Agents Walkthrough](../docs/BEDROCK_AGENTS_WALKTHROUGH.md) for detailed setup instructions.
+
 ## Files
 
 | File | Description |
 |------|-------------|
 | `agent.py` | Basic streaming agent with CLI interface |
 | `agent_with_memory.py` | Agent with AgentCore Memory for persistence |
+| `agent_with_all_features.py` | Agent with GuardRails, Knowledge Base, and Memory |
 | `fastapi_server.py` | HTTP API with SSE streaming endpoint |
 | `requirements.txt` | Python dependencies |
 
