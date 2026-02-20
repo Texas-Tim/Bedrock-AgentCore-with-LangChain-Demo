@@ -218,7 +218,7 @@ Your custom instructions here."""
 
 ## Streaming Implementation
 
-The agents use `stream_mode="messages"` for reliable streaming:
+The agents use `stream_mode="messages"` for reliable streaming with `create_react_agent` from `langgraph.prebuilt`:
 
 ```python
 async for event in agent.astream(input_data, stream_mode="messages"):
