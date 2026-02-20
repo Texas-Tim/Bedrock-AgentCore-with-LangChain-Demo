@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local config
+.env
+*.local
+
+# Documentation
+*.md
+!README.md
+
+# Git
+.git/
+.gitignore
+
+# AgentCore
+.bedrock_agentcore/
