@@ -447,11 +447,21 @@ guardrails_config = build_guardrails_config()
 # Initialize ChatBedrock LLM with optional GuardRails
 # If guardrails_config is None, the LLM works normally without content filtering
 # If guardrails_config is provided, all LLM inputs/outputs are filtered by GuardRails
-llm = ChatBedrock(
-    model_id=MODEL_ID,
-    region_name=REGION,
-    guardrails=guardrails_config,  # Optional: None or GuardRails config dict
-)
+#
+# NOTE: We conditionally pass the guardrails parameter only when it's not None
+# because langchain_aws has a bug where it tries to call .get() on None
+# in the _identifying_params property.
+if guardrails_config:
+    llm = ChatBedrock(
+        model_id=MODEL_ID,
+        region_name=REGION,
+        guardrails=guardrails_config,
+    )
+else:
+    llm = ChatBedrock(
+        model_id=MODEL_ID,
+        region_name=REGION,
+    )
 
 logger.info(f"LLM initialized: {MODEL_ID} in {REGION}")
 
@@ -593,8 +603,10 @@ async def stream_response(
         async for event in agent.astream(input_data, config=config, stream_mode="messages"):
             if isinstance(event, tuple) and len(event) >= 2:
                 chunk, metadata = event[0], event[1]
-                # Only yield AI model text responses, skip tool calls and tool results
-                if metadata.get("langgraph_node") != "model":
+                # Only yield AI model text responses from the 'agent' node
+                # Skip tool calls and tool results
+                # Note: create_react_agent uses 'agent' as the node name, not 'model'
+                if metadata.get("langgraph_node") != "agent":
                     continue
                 if hasattr(chunk, "content") and chunk.content:
                     content = chunk.content
