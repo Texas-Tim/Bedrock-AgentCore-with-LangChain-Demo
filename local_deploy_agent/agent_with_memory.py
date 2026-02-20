@@ -16,7 +16,7 @@ import logging
 from typing import AsyncGenerator
 from langchain_aws import ChatBedrock
 from langchain_core.tools import tool
-from langchain.agents import create_agent
+from langgraph.prebuilt import create_react_agent
 from langgraph_checkpoint_aws import AgentCoreMemorySaver
 
 # Configure logging to track memory initialization status
@@ -62,7 +62,6 @@ tools = [get_weather, search_knowledge_base]
 llm = ChatBedrock(
     model_id=MODEL_ID,
     region_name=REGION,
-    call_handler=None
 )
 
 # Initialize AgentCore Memory checkpointer with error handling
@@ -107,7 +106,7 @@ except Exception as e:
     checkpointer = None
     memory_enabled = False
 
-# Create the agent with memory (if available) using langchain.agents.create_agent
+# Create the agent with memory (if available) using langgraph.prebuilt.create_react_agent
 # The checkpointer parameter enables automatic state persistence
 # 
 # With checkpointer (memory_enabled=True):
@@ -119,10 +118,10 @@ except Exception as e:
 # - Agent is stateless - no memory between calls
 # - Each call is independent with no conversation history
 # - Agent still functions normally, just without persistence
-agent = create_agent(
+agent = create_react_agent(
     model=llm,
     tools=tools,
-    system_prompt=SYSTEM_PROMPT,
+    prompt=SYSTEM_PROMPT,
     checkpointer=checkpointer,  # None if memory initialization failed
 )
 
