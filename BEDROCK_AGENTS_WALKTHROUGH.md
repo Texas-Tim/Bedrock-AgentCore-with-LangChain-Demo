@@ -313,14 +313,18 @@ except Exception as e:
 **Local Mode:**
 ```bash
 cd local_deploy_agent
+export BEDROCK_GUARDRAIL_ID="your-guardrail-id"
+export BEDROCK_GUARDRAIL_VERSION="1"
 python agent_with_all_features.py
 ```
 
 **Deployed Mode:**
 ```bash
 cd aws_kb_gr_agent
-# Add environment variables to .bedrock_agentcore.yaml
-agentcore launch
+agentcore configure -e kb_gr_agent.py -n langgraph_full_demo -r us-east-1 --non-interactive
+agentcore deploy \
+  --env BEDROCK_GUARDRAIL_ID=your-guardrail-id \
+  --env BEDROCK_GUARDRAIL_VERSION=1
 ```
 
 ### Example Use Cases
@@ -399,7 +403,7 @@ safety policies. Please rephrase your request or ask something different.
 - Add environment variables to `.bedrock_agentcore.yaml`
 - Verify IAM execution role has GuardRails permissions
 - Check CloudWatch logs for initialization errors
-- Redeploy after configuration changes: `agentcore launch`
+- Redeploy after configuration changes: `agentcore deploy --env BEDROCK_GUARDRAIL_ID=... --env BEDROCK_GUARDRAIL_VERSION=...`
 
 ### Best Practices
 
@@ -569,14 +573,15 @@ Test retrieval directly in the AWS Console:
 **Local Mode:**
 ```bash
 cd local_deploy_agent
+export BEDROCK_KNOWLEDGE_BASE_ID="your-kb-id"
 python agent_with_all_features.py
 ```
 
 **Deployed Mode:**
 ```bash
 cd aws_kb_gr_agent
-# Add BEDROCK_KNOWLEDGE_BASE_ID to .bedrock_agentcore.yaml
-agentcore launch
+agentcore configure -e kb_gr_agent.py -n langgraph_full_demo -r us-east-1 --non-interactive
+agentcore deploy --env BEDROCK_KNOWLEDGE_BASE_ID=your-kb-id
 ```
 
 ### Example Use Cases
@@ -931,14 +936,23 @@ source ~/.bashrc
 **Local Mode:**
 ```bash
 cd local_deploy_agent
+export BEDROCK_MEMORY_ID="your-memory-id"
 python agent_with_all_features.py
 ```
 
 **Deployed Mode:**
+
+Memory can be auto-created during deployment or you can use an existing one:
+
 ```bash
 cd aws_kb_gr_agent
-# Add BEDROCK_MEMORY_ID to .bedrock_agentcore.yaml
-agentcore launch
+agentcore configure -e kb_gr_agent.py -n langgraph_full_demo -r us-east-1 --non-interactive
+
+# Option A: Let agentcore auto-create memory (recommended)
+agentcore deploy
+
+# Option B: Use existing memory resource
+agentcore deploy --env BEDROCK_MEMORY_ID=your-memory-id
 ```
 
 ### Example Use Cases
@@ -1312,14 +1326,22 @@ export BEDROCK_MEMORY_ID="MEM123ABC"
 **Local Mode**:
 ```bash
 cd local_deploy_agent
+export BEDROCK_GUARDRAIL_ID="your-guardrail-id"
+export BEDROCK_GUARDRAIL_VERSION="1"
+export BEDROCK_KNOWLEDGE_BASE_ID="your-kb-id"
+export BEDROCK_MEMORY_ID="your-memory-id"
 python agent_with_all_features.py
 ```
 
 **Deployed Mode**:
 ```bash
 cd aws_kb_gr_agent
-# Add all environment variables to .bedrock_agentcore.yaml
-agentcore launch
+agentcore configure -e kb_gr_agent.py -n langgraph_full_demo -r us-east-1 --non-interactive
+agentcore deploy \
+  --env BEDROCK_GUARDRAIL_ID=your-guardrail-id \
+  --env BEDROCK_GUARDRAIL_VERSION=1 \
+  --env BEDROCK_KNOWLEDGE_BASE_ID=your-kb-id \
+  --env BEDROCK_MEMORY_ID=your-memory-id
 ```
 
 ### Step 4: Test the Complete Integration
