@@ -9,7 +9,7 @@ import logging
 from typing import AsyncGenerator, Optional
 from langchain_aws import ChatBedrock, AmazonKnowledgeBasesRetriever
 from langchain_core.tools import tool
-from langchain.agents import create_agent
+from langgraph.prebuilt import create_react_agent
 
 # Configure logging
 logging.basicConfig(
@@ -285,11 +285,11 @@ llm = ChatBedrock(
     guardrails=guardrails_config,  # Optional: None or GuardRails config dict
 )
 
-# Create the agent using langchain.agents.create_agent
-agent = create_agent(
+# Create the agent using langgraph.prebuilt.create_react_agent
+agent = create_react_agent(
     model=llm,
     tools=tools,
-    system_prompt=SYSTEM_PROMPT,
+    prompt=SYSTEM_PROMPT,
 )
 
 
