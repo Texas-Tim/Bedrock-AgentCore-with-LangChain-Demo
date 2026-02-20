@@ -41,9 +41,17 @@ Before deploying, create the AWS resources you want to use:
 5. Copy the Knowledge Base ID (format: `KB123ABC`)
 
 ### 3. Memory (Optional)
+Memory can be created automatically during deployment or manually:
+
+**Option A: Auto-create during deploy (recommended)**
+- Run `agentcore configure` without `--disable-memory`
+- Memory is created automatically during `agentcore deploy`
+
+**Option B: Create manually**
 1. Go to [Bedrock Console > AgentCore > Memory](https://console.aws.amazon.com/bedrock)
 2. Create a Memory resource
-3. Copy the Memory ID (format: `MEM123ABC`)
+3. Copy the Memory ID (format: `mem-abc123xyz`)
+4. Pass via `--env BEDROCK_MEMORY_ID=mem-abc123xyz` during deploy
 
 ## Step 2: Set Up Environment
 
@@ -71,46 +79,37 @@ agentcore configure -e kb_gr_agent.py -n langgraph_full_demo -r us-east-1 --non-
 
 This creates `.bedrock_agentcore.yaml` with your AWS account details.
 
-### Add Feature Configuration
-
-Edit `.bedrock_agentcore.yaml` and add your resource IDs as environment variables:
-
-```yaml
-agents:
-  langgraph_full_demo:
-    entrypoint: kb_gr_agent.py
-    platform: linux/arm64
-    environment:
-      # Add your resource IDs here
-      BEDROCK_GUARDRAIL_ID: "gr-abc123xyz"
-      BEDROCK_GUARDRAIL_VERSION: "1"
-      BEDROCK_KNOWLEDGE_BASE_ID: "KB123ABC"
-      BEDROCK_MEMORY_ID: "MEM123ABC"
-    aws:
-      region: us-east-1
-      execution_role_auto_create: true
-      ecr_auto_create: true
-      network_configuration:
-        network_mode: PUBLIC
-      observability:
-        enabled: true
-```
-
-**Note**: All features are optional. Only include environment variables for features you want to enable.
-
 ### What is `.bedrock_agentcore.yaml`?
 
 This file is the deployment configuration for your agent. It tells AWS:
-- **Entry point**: Which Python file contains your agent (`agent_with_all_features.py`)
-- **Environment variables**: Your GuardRail, Knowledge Base, and Memory IDs
+- **Entry point**: Which Python file contains your agent (`kb_gr_agent.py`)
 - **AWS settings**: Region, IAM roles, ECR repository
 - **Container config**: Platform (ARM64/x86), Docker settings
 - **Network**: Public or VPC access
+- **Memory**: AgentCore Memory configuration (auto-created during deploy)
 - **Observability**: CloudWatch logging
 
 Think of it as your deployment blueprint - similar to `docker-compose.yml` or a Kubernetes manifest.
 
 ## Step 4: Deploy to AWS
+
+Deploy with environment variables for your AWS resources:
+
+```bash
+# Deploy with all features (GuardRails, Knowledge Base, Memory)
+agentcore deploy \
+  --env BEDROCK_GUARDRAIL_ID=your-guardrail-id \
+  --env BEDROCK_GUARDRAIL_VERSION=1 \
+  --env BEDROCK_KNOWLEDGE_BASE_ID=your-kb-id \
+  --env BEDROCK_MEMORY_ID=your-memory-id
+
+# Or deploy with only some features (all are optional)
+agentcore deploy --env BEDROCK_KNOWLEDGE_BASE_ID=your-kb-id
+```
+
+**Note**: All features are optional. Only include `--env` flags for features you want to enable.
+
+Alternatively, use `agentcore launch` which combines configure + deploy:
 
 ```bash
 agentcore launch
@@ -123,6 +122,15 @@ This will:
 4. Output your Agent ARN
 
 Save the Agent ARN from the output — you'll need it to invoke the agent.
+
+### Environment Variables Reference
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `BEDROCK_GUARDRAIL_ID` | GuardRail resource ID | `gr-abc123xyz` |
+| `BEDROCK_GUARDRAIL_VERSION` | GuardRail version | `1` or `DRAFT` |
+| `BEDROCK_KNOWLEDGE_BASE_ID` | Knowledge Base resource ID | `ABCDEFGHIJ` |
+| `BEDROCK_MEMORY_ID` | Memory resource ID | `mem-xyz789` |
 
 ## Step 5: Test the Deployed Agent
 
@@ -174,8 +182,11 @@ agentcore invoke '{"prompt": "What is my name?"}'
 | File | Description |
 |------|-------------|
 | `kb_gr_agent.py` | Agent with GuardRails, Knowledge Base, and Memory |
+| `invoke_deployed_agent.py` | SDK client to test deployed agent with memory support |
 | `test_kb_gr_memory.py` | Test harness for KB, GuardRails, and Memory |
+| `.bedrock_agentcore.yaml` | AgentCore deployment configuration |
 | `.env.example` | Example environment variables for local development |
+| `Dockerfile` | Container configuration for deployment |
 | `requirements.txt` | Python dependencies |
 
 ## Customizing the Agent
@@ -218,7 +229,7 @@ This deletes the AgentCore Runtime agent, ECR repository, and CodeBuild project.
 - Verify GuardRail, Knowledge Base, and Memory permissions
 
 **"Resource not found" errors:**
-- Verify resource IDs in `.bedrock_agentcore.yaml` are correct
+- Verify resource IDs passed via `--env` flags are correct
 - Check resources exist in the same region as your deployment
 - Ensure resources are in "Active" state
 
