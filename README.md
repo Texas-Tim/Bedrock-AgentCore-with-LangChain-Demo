@@ -104,10 +104,16 @@ source .venv/bin/activate
 pip install -r requirements.txt
 pip install bedrock-agentcore-starter-toolkit
 
-# Set up GuardRails, Knowledge Base, Memory in AWS Console first
-# Then configure environment variables in .bedrock_agentcore.yaml
+# Set up GuardRails, Knowledge Base in AWS Console first (see BEDROCK_AGENTS_WALKTHROUGH.md)
+
+# Configure the agent
 agentcore configure -e kb_gr_agent.py -n langgraph_full_demo -r us-east-1 --non-interactive
-agentcore launch
+
+# Deploy with environment variables for your AWS resources
+agentcore deploy \
+  --env BEDROCK_GUARDRAIL_ID=your-guardrail-id \
+  --env BEDROCK_GUARDRAIL_VERSION=1 \
+  --env BEDROCK_KNOWLEDGE_BASE_ID=your-kb-id
 ```
 
 ## Key Implementation Pattern
@@ -118,7 +124,8 @@ All agents use `stream_mode="messages"` for reliable streaming:
 async for event in agent.astream(input_data, stream_mode="messages"):
     if isinstance(event, tuple) and len(event) >= 2:
         chunk, metadata = event[0], event[1]
-        if metadata.get("langgraph_node") == "model":
+        # Note: create_react_agent uses 'agent' as the node name
+        if metadata.get("langgraph_node") == "agent":
             # Process AI response chunks
 ```
 
