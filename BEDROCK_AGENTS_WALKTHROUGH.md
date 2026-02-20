@@ -125,20 +125,32 @@ Ensure you have the AgentCore demo project:
 
 ```
 .
-├── local/                              # Local development
+├── local_deploy_agent/                 # Local development
 │   ├── agent.py                        # Basic agent
 │   ├── agent_with_memory.py            # Agent with Memory
 │   ├── agent_with_all_features.py      # All features combined
+│   ├── fastapi_server.py               # HTTP API server
 │   └── requirements.txt
 │
-├── deployed/                           # AWS deployment
+├── aws_base_agent/                     # Basic AWS deployment
 │   ├── agent.py                        # Deployed agent
-│   ├── agent_with_all_features.py      # All features deployed
+│   ├── invoke_deployed_agent.py        # SDK client
 │   └── requirements.txt
 │
-└── docs/                               # Documentation
-    ├── BEDROCK_AGENTS_WALKTHROUGH.md   # This file
-    └── AWS_PERMISSIONS.md              # IAM permissions guide
+├── aws_kb_gr_agent/                    # Full-featured AWS deployment
+│   ├── kb_gr_agent.py                  # GuardRails, KB, Memory
+│   ├── test_kb_gr_memory.py            # Test harness
+│   └── requirements.txt
+│
+├── shared/                             # Shared utilities
+│   ├── config.py                       # Configuration management
+│   ├── knowledge_base.py               # KB tool factory
+│   ├── guardrails.py                   # GuardRails config
+│   ├── memory.py                       # Memory initialization
+│   └── retry.py                        # Retry logic
+│
+├── BEDROCK_AGENTS_WALKTHROUGH.md       # This file
+└── AWS_PERMISSIONS.md                  # IAM permissions guide
 ```
 
 ---
@@ -261,7 +273,7 @@ You'll notice that guardrails occur in two places, during the input, and for the
 
 ### Step 2: Configure Your Agent
 
-If you're deploying, here's how GuardRails are integrated in the agent code, you can also review [guardrails in practice](/deployed/agent_with_all_features.py):
+If you're deploying, here's how GuardRails are integrated in the agent code, you can also review [guardrails in practice](aws_kb_gr_agent/kb_gr_agent.py):
 
 ```python
 import os
@@ -300,13 +312,13 @@ except Exception as e:
 
 **Local Mode:**
 ```bash
-cd local
+cd local_deploy_agent
 python agent_with_all_features.py
 ```
 
 **Deployed Mode:**
 ```bash
-cd deployed
+cd aws_kb_gr_agent
 # Add environment variables to .bedrock_agentcore.yaml
 agentcore launch
 ```
@@ -556,13 +568,13 @@ Test retrieval directly in the AWS Console:
 
 **Local Mode:**
 ```bash
-cd local
+cd local_deploy_agent
 python agent_with_all_features.py
 ```
 
 **Deployed Mode:**
 ```bash
-cd deployed
+cd aws_kb_gr_agent
 # Add BEDROCK_KNOWLEDGE_BASE_ID to .bedrock_agentcore.yaml
 agentcore launch
 ```
@@ -918,13 +930,13 @@ source ~/.bashrc
 
 **Local Mode:**
 ```bash
-cd local
+cd local_deploy_agent
 python agent_with_all_features.py
 ```
 
 **Deployed Mode:**
 ```bash
-cd deployed
+cd aws_kb_gr_agent
 # Add BEDROCK_MEMORY_ID to .bedrock_agentcore.yaml
 agentcore launch
 ```
@@ -1299,13 +1311,13 @@ export BEDROCK_MEMORY_ID="MEM123ABC"
 
 **Local Mode**:
 ```bash
-cd local
+cd local_deploy_agent
 python agent_with_all_features.py
 ```
 
 **Deployed Mode**:
 ```bash
-cd deployed
+cd aws_kb_gr_agent
 # Add all environment variables to .bedrock_agentcore.yaml
 agentcore launch
 ```
@@ -1625,7 +1637,8 @@ Congratulations! You've successfully integrated all three Bedrock Agents feature
    - Implement your memory management strategy
 
 2. **Deploy to Production**
-   - Follow [deployed/README.md](../deployed/README.md) for deployment
+   - Follow [aws_base_agent/README.md](aws_base_agent/README.md) for basic deployment
+   - Follow [aws_kb_gr_agent/README.md](aws_kb_gr_agent/README.md) for full-featured deployment
    - Configure production environment variables
    - Set up monitoring and alerting
 
