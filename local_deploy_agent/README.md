@@ -225,7 +225,8 @@ async for event in agent.astream(input_data, stream_mode="messages"):
     if isinstance(event, tuple) and len(event) >= 2:
         chunk, metadata = event[0], event[1]
         # Only process AI model responses, skip tool calls
-        if metadata.get("langgraph_node") == "model":
+        # Note: create_react_agent uses 'agent' as the node name
+        if metadata.get("langgraph_node") == "agent":
             if hasattr(chunk, "content") and chunk.content:
                 # Handle streaming content
 ```
