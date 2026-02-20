@@ -45,7 +45,7 @@ from typing import AsyncGenerator, Optional
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from langchain_aws import ChatBedrock, AmazonKnowledgeBasesRetriever
 from langchain_core.tools import tool
-from langchain.agents import create_agent
+from langgraph.prebuilt import create_react_agent
 from langgraph_checkpoint_aws import AgentCoreMemorySaver
 
 # Documentation links and references (useful when configuring or extending):
@@ -577,15 +577,15 @@ checkpointer, memory_initialized = initialize_memory()
 # AGENT CREATION
 # ============================================================================
 
-# Create the agent using langchain.agents.create_agent
+# Create the agent using langgraph.prebuilt.create_react_agent
 # The agent combines:
 # - LLM with optional GuardRails
 # - Tools (including optional Knowledge Base tool)
 # - Optional Memory checkpointer for conversation persistence
-agent = create_agent(
+agent = create_react_agent(
     model=llm,
     tools=tools,
-    system_prompt=SYSTEM_PROMPT,
+    prompt=SYSTEM_PROMPT,
     checkpointer=checkpointer,  # None if memory is disabled or initialization failed
 )
 
