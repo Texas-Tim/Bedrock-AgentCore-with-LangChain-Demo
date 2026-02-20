@@ -216,8 +216,10 @@ async def stream_response(
     async for event in agent.astream(input_data, config=config, stream_mode="messages"):
         if isinstance(event, tuple) and len(event) >= 2:
             chunk, metadata = event[0], event[1]
-            # Only yield AI model text responses, skip tool calls and tool results
-            if metadata.get("langgraph_node") != "model":
+            # Only yield AI model text responses from the 'agent' node
+            # Skip tool calls and tool results
+            # Note: create_react_agent uses 'agent' as the node name, not 'model'
+            if metadata.get("langgraph_node") != "agent":
                 continue
             if hasattr(chunk, "content") and chunk.content:
                 content = chunk.content
