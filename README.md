@@ -20,8 +20,23 @@ Build and deploy AI agents using LangGraph with AWS Bedrock. This repo demonstra
 │   └── requirements.txt
 │
 ├── aws_kb_gr_agent/             # Deploy agent with all features to AWS
-│   ├── agent_with_all_features.py  # GuardRails, KB, Memory
+│   ├── kb_gr_agent.py              # GuardRails, KB, Memory
+│   ├── test_kb_gr_memory.py        # Test harness for features
 │   └── requirements.txt
+│
+├── shared/                      # Shared utilities module
+│   ├── config.py                # Pydantic configuration management
+│   ├── knowledge_base.py        # Knowledge Base tool factory
+│   ├── guardrails.py            # GuardRails configuration
+│   ├── memory.py                # Memory initialization
+│   └── retry.py                 # Retry logic with backoff
+│
+├── tests/                       # Unit tests
+│   ├── test_config.py           # Configuration tests
+│   ├── test_knowledge_base.py   # Knowledge Base tests
+│   ├── test_guardrails.py       # GuardRails tests
+│   ├── test_memory.py           # Memory tests
+│   └── test_retry.py            # Retry logic tests
 │
 ├── example_knowledge_base/      # Sample documents for Knowledge Base
 │   ├── company_overview.txt
@@ -32,6 +47,8 @@ Build and deploy AI agents using LangGraph with AWS Bedrock. This repo demonstra
 ├── Images/                      # Documentation screenshots
 ├── AWS_PERMISSIONS.md           # IAM permissions reference
 ├── BEDROCK_AGENTS_WALKTHROUGH.md  # Comprehensive feature guide
+├── pyproject.toml               # Project configuration
+├── requirements.txt             # Root dependencies
 └── README.md
 ```
 
@@ -89,7 +106,7 @@ pip install bedrock-agentcore-starter-toolkit
 
 # Set up GuardRails, Knowledge Base, Memory in AWS Console first
 # Then configure environment variables in .bedrock_agentcore.yaml
-agentcore configure -e agent_with_all_features.py -n langgraph_full_demo -r us-east-1 --non-interactive
+agentcore configure -e kb_gr_agent.py -n langgraph_full_demo -r us-east-1 --non-interactive
 agentcore launch
 ```
 
@@ -106,6 +123,39 @@ async for event in agent.astream(input_data, stream_mode="messages"):
 ```
 
 This avoids the `tool_call_chunks` validation bug in `langchain-aws` that occurs with `astream_events()`.
+
+The agents use `create_react_agent` from `langgraph.prebuilt` for the ReAct pattern implementation.
+
+## Development
+
+### Running Tests
+
+```bash
+# Install development dependencies
+pip install -r requirements.txt
+
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=shared --cov-report=html
+
+# Run specific test file
+pytest tests/test_config.py
+```
+
+### Code Quality
+
+```bash
+# Type checking
+mypy shared/
+
+# Linting
+ruff check .
+
+# Format code
+ruff format .
+```
 
 ## Documentation
 
