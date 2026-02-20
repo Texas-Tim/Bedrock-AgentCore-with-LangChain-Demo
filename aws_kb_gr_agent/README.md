@@ -66,7 +66,7 @@ pip install bedrock-agentcore-starter-toolkit
 Run the configuration wizard:
 
 ```bash
-agentcore configure -e agent_with_all_features.py -n langgraph_full_demo -r us-east-1 --non-interactive
+agentcore configure -e kb_gr_agent.py -n langgraph_full_demo -r us-east-1 --non-interactive
 ```
 
 This creates `.bedrock_agentcore.yaml` with your AWS account details.
@@ -78,7 +78,7 @@ Edit `.bedrock_agentcore.yaml` and add your resource IDs as environment variable
 ```yaml
 agents:
   langgraph_full_demo:
-    entrypoint: agent_with_all_features.py
+    entrypoint: kb_gr_agent.py
     platform: linux/arm64
     environment:
       # Add your resource IDs here
@@ -173,12 +173,14 @@ agentcore invoke '{"prompt": "What is my name?"}'
 
 | File | Description |
 |------|-------------|
-| `agent_with_all_features.py` | Agent with GuardRails, Knowledge Base, and Memory |
+| `kb_gr_agent.py` | Agent with GuardRails, Knowledge Base, and Memory |
+| `test_kb_gr_memory.py` | Test harness for KB, GuardRails, and Memory |
+| `.env.example` | Example environment variables for local development |
 | `requirements.txt` | Python dependencies |
 
 ## Customizing the Agent
 
-Edit `agent_with_all_features.py` to add your own tools:
+Edit `kb_gr_agent.py` to add your own tools:
 
 ```python
 @tool
