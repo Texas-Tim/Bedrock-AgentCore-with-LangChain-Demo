@@ -1,37 +1,62 @@
 # LangGraph + AWS Bedrock AgentCore Demo
 
-Build and deploy AI agents using LangGraph with AWS Bedrock. This repo includes two approaches:
+Build and deploy AI agents using LangGraph with AWS Bedrock. This repo demonstrates multiple deployment approaches with varying feature sets.
 
-1. **Local** — Run agents on your machine, use Bedrock for LLM inference
-2. **Deployed** — Deploy to AWS Bedrock AgentCore Runtime with auto-scaling and observability
+## Project Structure
+
+```
+.
+├── local_deploy_agent/          # Run locally on your machine
+│   ├── agent.py                 # Basic streaming agent (CLI)
+│   ├── agent_with_memory.py     # With AgentCore Memory persistence
+│   ├── agent_with_all_features.py  # With GuardRails, KB, Memory
+│   ├── fastapi_server.py        # HTTP API with SSE streaming
+│   └── requirements.txt
+│
+├── aws_base_agent/              # Deploy basic agent to AWS
+│   ├── agent.py                 # Basic agent for AgentCore Runtime
+│   ├── invoke_deployed_agent.py # SDK client to test deployed agent
+│   ├── Dockerfile
+│   └── requirements.txt
+│
+├── aws_kb_gr_agent/             # Deploy agent with all features to AWS
+│   ├── agent_with_all_features.py  # GuardRails, KB, Memory
+│   └── requirements.txt
+│
+├── example_knowledge_base/      # Sample documents for Knowledge Base
+│   ├── company_overview.txt
+│   ├── contact_support.txt
+│   ├── policies_faq.txt
+│   └── products_services.txt
+│
+├── Images/                      # Documentation screenshots
+├── AWS_PERMISSIONS.md           # IAM permissions reference
+├── BEDROCK_AGENTS_WALKTHROUGH.md  # Comprehensive feature guide
+└── README.md
+```
 
 ## Features
-
-### Core Capabilities
-- **Streaming Responses**: Token-by-token streaming using LangGraph
-- **Tool Integration**: Custom tools with automatic function calling
-- **Local & Deployed**: Same code works locally and in production
 
 ### AWS Bedrock Agents Integration
 - **GuardRails**: Content filtering and safety controls
 - **Knowledge Bases**: RAG (Retrieval Augmented Generation) for document retrieval
 - **Memory**: Persistent conversation state across sessions
 
-See the [Bedrock Agents Walkthrough](docs/BEDROCK_AGENTS_WALKTHROUGH.md) for detailed setup instructions.
+See the [Bedrock Agents Walkthrough](BEDROCK_AGENTS_WALKTHROUGH.md) for detailed setup instructions.
 
 ## Prerequisites
 
 - Python 3.10+
 - AWS account with Bedrock access
 - AWS CLI configured (`aws configure`)
-- Bedrock model access enabled (Claude Sonnet 4)
+- Bedrock model access enabled (Claude Sonnet 4.5)
 
 ## Quick Start
 
 ### Option 1: Run Locally
 
 ```bash
-cd agentcore_demo/local
+cd local_deploy_agent
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -39,10 +64,10 @@ pip install -r requirements.txt
 python agent.py
 ```
 
-### Option 2: Deploy to AWS
+### Option 2: Deploy Basic Agent to AWS
 
 ```bash
-cd agentcore_demo/deployed
+cd aws_base_agent
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -53,36 +78,24 @@ agentcore configure -e agent.py -n langgraph_demo -r us-east-1 --non-interactive
 agentcore launch
 ```
 
-## Project Structure
+### Option 3: Deploy Full-Featured Agent to AWS
 
-```
-agentcore_demo/
-├── local/                              # Run locally
-│   ├── agent.py                        # Basic streaming agent (CLI)
-│   ├── agent_with_memory.py            # With AgentCore Memory persistence
-│   ├── agent_with_all_features.py      # With GuardRails, Knowledge Base, Memory
-│   ├── fastapi_server.py               # HTTP API with SSE streaming
-│   └── requirements.txt
-│
-├── deployed/                           # Deploy to AgentCore Runtime
-│   ├── agent.py                        # Agent with AgentCore HTTP contract
-│   ├── agent_with_all_features.py      # With GuardRails, Knowledge Base, Memory
-│   ├── invoke_deployed_agent.py        # SDK client to test deployed agent
-│   ├── .bedrock_agentcore.yaml.example # Deployment config template
-│   ├── Dockerfile
-│   └── requirements.txt
-│
-├── docs/                               # Documentation
-│   ├── BEDROCK_AGENTS_WALKTHROUGH.md   # Comprehensive feature guide
-│   └── AWS_PERMISSIONS.md              # IAM permissions reference
-│
-├── .gitignore
-└── README.md
+```bash
+cd aws_kb_gr_agent
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+pip install bedrock-agentcore-starter-toolkit
+
+# Set up GuardRails, Knowledge Base, Memory in AWS Console first
+# Then configure environment variables in .bedrock_agentcore.yaml
+agentcore configure -e agent_with_all_features.py -n langgraph_full_demo -r us-east-1 --non-interactive
+agentcore launch
 ```
 
 ## Key Implementation Pattern
 
-Both local and deployed agents use `stream_mode="messages"` for reliable streaming:
+All agents use `stream_mode="messages"` for reliable streaming:
 
 ```python
 async for event in agent.astream(input_data, stream_mode="messages"):
@@ -96,11 +109,16 @@ This avoids the `tool_call_chunks` validation bug in `langchain-aws` that occurs
 
 ## Documentation
 
-- [Local Agent Setup](local/README.md) — CLI agent, memory persistence, FastAPI server
-- [Deployed Agent Setup](deployed/README.md) — AgentCore deployment, invocation, cleanup
-- [Bedrock Agents Walkthrough](docs/BEDROCK_AGENTS_WALKTHROUGH.md) — GuardRails, Knowledge Bases, Memory setup
-- [AWS Permissions Guide](docs/AWS_PERMISSIONS.md) — IAM permissions reference
+- [Local Agent Setup](local_deploy_agent/README.md) — CLI agent, memory persistence, FastAPI server
+- [Basic AWS Deployment](aws_base_agent/README.md) — Deploy simple agent to AgentCore Runtime
+- [Full-Featured AWS Deployment](aws_kb_gr_agent/README.md) — Deploy with GuardRails, Knowledge Base, Memory
+- [Bedrock Agents Walkthrough](BEDROCK_AGENTS_WALKTHROUGH.md) — GuardRails, Knowledge Bases, Memory setup
+- [AWS Permissions Guide](AWS_PERMISSIONS.md) — IAM permissions reference
 
-## License
+## Additional Resources
 
-MIT
+- [AWS Bedrock Documentation](https://docs.aws.amazon.com/bedrock/)
+- [LangGraph Documentation](https://langchain-ai.github.io/langgraph/)
+- [LangChain AWS Integration](https://python.langchain.com/docs/integrations/platforms/aws)
+- [Bedrock AgentCore Starter Toolkit](https://github.com/awslabs/bedrock-agentcore-starter-toolkit)
+- [FastAPI Documentation](https://fastapi.tiangolo.com/)
