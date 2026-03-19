@@ -25,7 +25,16 @@ AGENT_ARN = os.environ.get(
 
 
 def invoke_agent(prompt: str, stream: bool = False) -> str:
-    """Invoke the deployed agent."""
+    """
+    Invoke the deployed agent.
+    
+    Args: 
+        prompt: The user's message
+        stream: Whether to stream output to console
+
+    Returns:
+        The agent's response
+    """
     client = boto3.client("bedrock-agentcore")
 
     payload = json.dumps({"prompt": prompt}).encode()
@@ -41,25 +50,36 @@ def invoke_agent(prompt: str, stream: bool = False) -> str:
     content = []
     for chunk in response.get("response", []):
         decoded = chunk.decode("utf-8")
-        content.append(decoded)
-        if stream:
-            print(decoded, end="", flush=True)
 
-    full_response = "".join(content)
+        # Parse SSE format: data: "text"
+        for line in decoded.strip().split("\n"):
+            if line.startswith("data: "):
+                data = line[6:] 
+                try:
+                    # Parse the JSON string value
+                    text = json.loads(data)
+                    content.append(text)
+                    if stream:
+                        print(text, end="", flush=True)
+                except json.JSONDecodeError:
+                    # If not valid JSON, use raw data
+                    content.append(data)
+                    if stream:
+                        print(data, end="", flush=True)
+    if stream:
+        print()     # Newline after streaming
 
-    try:
-        return json.loads(full_response)
-    except json.JSONDecodeError:
-        return full_response
+    return "".join(content)
+
 
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python invoke_deployed_agent.py <prompt>")
+        print("Usage: python invoke_agent.py <prompt>")
         print('Example: python invoke_deployed_agent.py "What is the weather in Seattle?"')
         sys.exit(1)
 
-    prompt = sys.argv[1]
+    prompt = " ".join(sys.argv[1:])
 
     if AGENT_ARN.endswith("YOUR_AGENT_ID"):
         print("ERROR: Please set AGENT_ARN environment variable or update the script")
@@ -67,8 +87,10 @@ def main():
         sys.exit(1)
 
     print(f"Invoking agent with prompt: {prompt}\n")
+    print("-" * 40)
     result = invoke_agent(prompt)
-    print(f"\nResponse: {result}")
+    print("-" * 40)
+    # print(f"\nResponse: {result}")
 
 
 if __name__ == "__main__":

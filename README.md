@@ -1,124 +1,202 @@
-# LangGraph + AWS Bedrock AgentCore Demo
+# LangGraph + AWS Bedrock AgentCore Labs
 
-Build and deploy AI agents using LangGraph with AWS Bedrock. This repo demonstrates multiple deployment approaches with varying feature sets.
+Build and deploy AI agents using LangGraph with AWS Bedrock AgentCore. This repository provides a hands-on lab experience progressing from basic deployment to production-ready agents with evaluation.
 
-## Project Structure
-
+## Lab Structure
 ```
-.
-├── local_deploy_agent/          # Run locally on your machine
-│   ├── agent.py                 # Basic streaming agent (CLI)
-│   ├── agent_with_memory.py     # With AgentCore Memory persistence
-│   ├── agent_with_all_features.py  # With GuardRails, KB, Memory
-│   ├── fastapi_server.py        # HTTP API with SSE streaming
-│   └── requirements.txt
-│
-├── aws_base_agent/              # Deploy basic agent to AWS
-│   ├── agent.py                 # Basic agent for AgentCore Runtime
-│   ├── invoke_deployed_agent.py # SDK client to test deployed agent
-│   ├── Dockerfile
-│   └── requirements.txt
-│
-├── aws_kb_gr_agent/             # Deploy agent with all features to AWS
-│   ├── agent_with_all_features.py  # GuardRails, KB, Memory
-│   └── requirements.txt
-│
-├── example_knowledge_base/      # Sample documents for Knowledge Base
-│   ├── company_overview.txt
-│   ├── contact_support.txt
-│   ├── policies_faq.txt
-│   └── products_services.txt
-│
-├── Images/                      # Documentation screenshots
-├── AWS_PERMISSIONS.md           # IAM permissions reference
-├── BEDROCK_AGENTS_WALKTHROUGH.md  # Comprehensive feature guide
-└── README.md
 ```
 
-## Features
-
-### AWS Bedrock Agents Integration
-- **GuardRails**: Content filtering and safety controls
-- **Knowledge Bases**: RAG (Retrieval Augmented Generation) for document retrieval
-- **Memory**: Persistent conversation state across sessions
-
-See the [Bedrock Agents Walkthrough](BEDROCK_AGENTS_WALKTHROUGH.md) for detailed setup instructions.
-
-## Prerequisites
+### Prerequistes
 
 - Python 3.10+
 - AWS account with Bedrock access
 - AWS CLI configured (`aws configure`)
-- Bedrock model access enabled (Claude Sonnet 4.5)
 
-## Quick Start
+### Environment Setup
 
-### Option 1: Run Locally
+Set up a single virtual environment at the project root for all labs:
 
 ```bash
-cd local_deploy_agent
 python -m venv .venv
 source .venv/bin/activate
+# Windows: .venv\Scripts\activate
+
+pip install bedrock-agentcore-starter-toolkit
+```
+
+## LAB START
+You can use the quick start instructions below or open the intended lab for detailed deployment instructions. Each lab is independent of the other, so you can build in any order
+
+
+### Lab 1: Deploy Basic Agent
+
+```bash
+cd 01_base_agent
+
 pip install -r requirements.txt
+
+# Configure and deploy
+agentcore configure \
+  -e agent.py \
+  -n langgraph_lab_agent \
+  -r us-east-1 \
+  --non-interactive
+
+agentcore launch
+
+# Test
+agentcore invoke '{"prompt": "What is the weather in Seattle?"}'
+```
+
+### Lab 2: Add Features
+
+See [Lab 2 README](02_features/README.md) for GuardRail, Memory and Knowledge Base creation steps
+
+```bash
+cd 02_features
+
+# Create GuardRail, Memory and Knowledge Base first (see Lab 2 README)
+# Then configure and deploy with features:
+
+agentcore configure \
+  -e agent.py \
+  -n langgraph_features_agent \
+  -r us-east-1 \
+  --non-interactive
+
+agentcore launch \
+   --env BEDROCK_GUARDRAIL_ID=$GUARDRAIL_ID \
+   --env BEDROCK_GUARDRAIL_VERSION=$GUARDRAIL_VERSION \
+   --env BEDROCK_KNOWLEDGE_BASE_ID=$KNOWLEDGE_BASE_ID \
+   --env BEDROCK_MEMORY_ID=$MEMORY_ID
+
+# Test features
+agentcore invoke '{"prompt": "What products do you offer?"}'
+```
+
+### Lab 3: Observability & Evaluation
+
+See [Lab 3 README](03_evaluation_workflow/README.md) for detailed instructions
+
+```bash
+cd 03_evaluation_workflow
+
+pip install -r requirements.txt
+
+#configure and deploy with OpenTelemetry tracing
+agentcore configure \
+   -e agent.py \
+   -n langgraph_eval_agent \
+   -r us-east-1 \
+   --non-interactive
+
+agentcore launch
+
+# Fix OpenTelemetry shebang paths (required until bug is patched)
+./fix_otel_shebang.sh
+agentcore launch
+
+# Test the agent
+agentcore invoke '{"prompt": "What is the weather in Seattle?"}'
+
+# Create online evaluation config
+agentcore eval online create \
+   --name lab_eval_config \
+   --sampling-rate 10.0 \
+   --evaluator "Builtin.Helpfulness"
+```
+
+> **NOTE:** The `fix_otel_shebang.sh` script is required to fix hardcoded Python paths in the OpenTelemetry dependencies. Without this fix, the agent will fail with "Runtime initialization time exceeded". 
+
+### Lab 4: Strands Agent with Working Evaluations
+
+```bash
+cd 04_strands_evaluation
+
+# Configure and deploy Strands agent
+agentcore configure \
+   -e agent.py
+   -n strands_eval_agent
+   -r us-east-1
+   --non-interactive
+
+agentcore launch
+
+# Test the agent
+agentcore invoke '{"prompt": "What is the weather in Seattle?"}'
+
+# Run evaluation
+agentcore eval run --evaluator "Builtin.Helpfulness"
+
+# Set up online evaluation
+agentcore eval online create \
+   --name lab_eval_config \
+   --sampling-rate 10.0 \
+   --evaluator "Builtin.Helpfulness"
+```
+
+## Local Development
+
+Some labs can be run locally before deploying:
+
+```bash
+# Lab 1 - Run agent locally
+cd 01_base_agent
+python agent.py
+
+# Lab 2 - Run with features (set env variables first)
+cd 02_features
+export BEDROCK_GUARDRAIL_ID=<GUARDRAIL_ID>
+export BEDROCK_GUARDRAIL_VERSION=<GUARDRAIL_VERSION>
+export BEDROCK_KNOWLEDGE_BASE_ID=<KNOWLEDGE_BASE_ID>
+export BEDROCK_MEMORY_ID=<MEMORY_ID>
 
 python agent.py
 ```
 
-### Option 2: Deploy Basic Agent to AWS
-
-```bash
-cd aws_base_agent
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-pip install bedrock-agentcore-starter-toolkit
-
-# Configure and deploy
-agentcore configure -e agent.py -n langgraph_demo -r us-east-1 --non-interactive
-agentcore launch
-```
-
-### Option 3: Deploy Full-Featured Agent to AWS
-
-```bash
-cd aws_kb_gr_agent
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-pip install bedrock-agentcore-starter-toolkit
-
-# Set up GuardRails, Knowledge Base, Memory in AWS Console first
-# Then configure environment variables in .bedrock_agentcore.yaml
-agentcore configure -e agent_with_all_features.py -n langgraph_full_demo -r us-east-1 --non-interactive
-agentcore launch
-```
-
-## Key Implementation Pattern
-
-All agents use `stream_mode="messages"` for reliable streaming:
-
-```python
-async for event in agent.astream(input_data, stream_mode="messages"):
-    if isinstance(event, tuple) and len(event) >= 2:
-        chunk, metadata = event[0], event[1]
-        if metadata.get("langgraph_node") == "model":
-            # Process AI response chunks
-```
-
-This avoids the `tool_call_chunks` validation bug in `langchain-aws` that occurs with `astream_events()`.
-
 ## Documentation
+```
+```
 
-- [Local Agent Setup](local_deploy_agent/README.md) — CLI agent, memory persistence, FastAPI server
-- [Basic AWS Deployment](aws_base_agent/README.md) — Deploy simple agent to AgentCore Runtime
-- [Full-Featured AWS Deployment](aws_kb_gr_agent/README.md) — Deploy with GuardRails, Knowledge Base, Memory
-- [Bedrock Agents Walkthrough](BEDROCK_AGENTS_WALKTHROUGH.md) — GuardRails, Knowledge Bases, Memory setup
-- [AWS Permissions Guide](AWS_PERMISSIONS.md) — IAM permissions reference
+## Resources 
 
-## Additional Resources
+```
+```
 
-- [AWS Bedrock Documentation](https://docs.aws.amazon.com/bedrock/)
-- [LangGraph Documentation](https://langchain-ai.github.io/langgraph/)
-- [LangChain AWS Integration](https://python.langchain.com/docs/integrations/platforms/aws)
-- [Bedrock AgentCore Starter Toolkit](https://github.com/awslabs/bedrock-agentcore-starter-toolkit)
-- [FastAPI Documentation](https://fastapi.tiangolo.com/)
+## Cleanup
+After completing all labs:
+
+```bash
+# Delete Lab 1 agent
+cd 01_base_agent
+agentcore destroy --force
+
+# Delete Lab 2 agent
+cd ../02_features
+agentcore destroy --force
+
+# Delete Lab 3 agent
+cd ../03_evaluation_workflow
+agentcore destroy --force
+
+# Delete Lab 4 agent
+cd ../04_strands_evaluation
+agentcore destroy --force
+
+# Delete GuardRail
+aws bedrock delete-guardrail --guardrail-identifier $GUARDRAIL_ID
+
+# Delete Knowledge Base (via console - includes vector store cleanup)
+
+# Delete evaulation configs
+agentcore eval online delete --name lab_eval_config
+agentcore eval online delete --name strands_eval_config
+
+# Delete Cloudwatch log groups (replace AGENT_ID with actual IDs)
+aws logs describe-log-groups --log-group-name-prefix /aws/bedrock-agentcore/runtimes/ --query 'logGroups[].logGroupName' --output text
+
+# aws logs delete-log-group --log-group-name /aws/bedrock-agentcore/runtimes/{AGENT_ID}-DEFAULT
+
+# Delete S3 Bucket
+aws s3 rb s3://langgraph-lab-kb-$(aws sts get-caller-identity --query Account --output text) --force
+```
