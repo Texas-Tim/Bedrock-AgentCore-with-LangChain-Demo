@@ -1,199 +1,231 @@
-# Deploy Full-Featured LangGraph Agent to AWS Bedrock AgentCore Runtime
+# Lab 2: Add GuardRails, Knowledge Base & Memory
 
-Deploy a LangGraph agent with GuardRails, Knowledge Base, and Memory to AWS-managed infrastructure.
+## Table of Contents
 
-## What's Included
 
-This agent includes all three AWS Bedrock Agents features:
+
+--- 
+
+In this lab, you'll create AWS Bedrock resources and enhance your agent with
 - **GuardRails**: Content filtering and safety controls
 - **Knowledge Base**: RAG (Retrieval Augmented Generation) for document retrieval
-- **Memory**: Persistent conversation state across sessions
-
-For a simpler deployment without these features, see [../aws_base_agent/](../aws_base_agent/).
+- **Memory**: Persistent conversation state
 
 ## Prerequisites
 
 1. **AWS Account** with Bedrock AgentCore access
 2. **AWS CLI** configured with credentials (`aws configure`)
-3. **Bedrock Model Access** enabled for Claude Sonnet 4.5
-4. **Python 3.10+**
-5. **AWS Resources Created**:
-   - GuardRail (optional)
-   - Knowledge Base (optional)
-   - Memory (optional)
+3. **Python 3.10+**
 
-See the [Bedrock Agents Walkthrough](../BEDROCK_AGENTS_WALKTHROUGH.md) for detailed setup instructions.
-
-## Step 1: Set Up AWS Resources
-
-Before deploying, create the AWS resources you want to use:
-
-### 1. GuardRails (Optional)
-1. Go to [Bedrock Console > GuardRails](https://console.aws.amazon.com/bedrock)
-2. Create a GuardRail with content filters, PII detection, denied topics
-3. Copy the GuardRail ID (format: `gr-abc123xyz`)
-
-### 2. Knowledge Base (Optional)
-1. Upload documents to S3 bucket (or use `../example_knowledge_base/`)
-2. Go to [Bedrock Console > Knowledge Bases](https://console.aws.amazon.com/bedrock)
-3. Create a Knowledge Base pointing to your S3 bucket
-4. Sync the data source
-5. Copy the Knowledge Base ID (format: `KB123ABC`)
-
-### 3. Memory (Optional)
-1. Go to [Bedrock Console > AgentCore > Memory](https://console.aws.amazon.com/bedrock)
-2. Create a Memory resource
-3. Copy the Memory ID (format: `MEM123ABC`)
-
-## Step 2: Set Up Environment
+Navigate to this lab directory:
 
 ```bash
-cd aws_kb_gr_agent
-
-# Create virtual environment
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# Install dependencies
+cd 02_features
 pip install -r requirements.txt
-
-# Install AgentCore CLI toolkit
-pip install bedrock-agentcore-starter-toolkit
 ```
 
-## Step 3: Configure the Agent
+---
 
-Run the configuration wizard:
+## Part 1: Create a GuardRail
+
+GuardRails provide content safety controls - blocking harmful content, filtering PII, and enforcing topic restrictions. The GuardRail can be created by the console very easily, just use the following CLI guide for the parameters.
+
+### Step 1.1: Create GuardRail (CLI)
 
 ```bash
+aws bedrock create-guardrail \
+  --name lab-guardrail \
+  --description "GuardRail for LangGraph Lab" \
+  --blocked-input-messaging "I cannot process this request due to content policies." \
+  --blocked-outputs-messaging "I cannot provide this response due to content policies." \
+  --content-policy-config '{
+    "filtersConfig": [
+      {"type": "HATE", "inputStrength": "HIGH", "outputStrength": "HIGH"},
+      {"type": "INSULTS", "inputStrength": "HIGH", "outputStrength": "HIGH"},
+      {"type": "SEXUAL", "inputStrength": "HIGH", "outputStrength": "HIGH"},
+      {"type": "VIOLENCE", "inputStrength": "HIGH", "outputStrength": "HIGH"}
+    ]
+  }' \
+  --sensitive-information-policy-config '{
+    "piiEntitiesConfig": [
+      {"type": "EMAIL", "action": "ANONYMIZE"},
+      {"type": "PHONE", "action": "ANONYMIZE"},
+      {"type": "US_SOCIAL_SECURITY_NUMBER", "action": "BLOCK"}
+    ]
+  }'
+
+# Save the GuardRail ID
+export GUARDRAIL_ID=$(aws bedrock list-guardrails --query "guardrails[?name=='lab-guardrail'].id" --output text)
+echo "GuardRail ID: $GUARDRAIL_ID"
+```
+
+### Step 1.2: Create a GuardRail Version
+
+```bash
+aws bedrock create-guardrail-version \
+  --guardrail-identifier $GUARDRAIL_ID \
+  --description "Version 1"
+
+# Export version for deployment
+export GUARDRAIL_VERSION="1"
+echo $GUARDRAIL_VERSION
+```
+
+---
+
+## Part 2: Create a Knowledge Base
+
+Knowledge Bases enable RAG (Retrieval Augmented Generation) - your agent can search and retrieve information from your documents
+
+### Step 2.1: Upload Documents to S3
+
+```bash
+# Create S3 bucket
+aws s3 mb s3://langgraph-lab-kb-$(aws sts get-caller-identity --query Account --output text)
+
+# Upload example documents
+aws s3 sync ../example_knowledge_base/ s3://langgraph-lab-kb-$(aws sts get-caller-identity --query Account --output text)
+```
+
+### Step 2.2: Create Knowledge Base via Console
+
+> **Why Console?** Creating a Knowledge Base via CLI requires multiple steps: creating an IAM role, setting up OpenSearch Serverless security policies, creating the collection, and configuring the data source. The console handles all of this automatically with "Quick Create."
+
+> **Important** Ensure you're in the same AWS region as your agent and guardrail when working in the console. Check the region selector in the top-right corner.
+1. Go to [Bedrock Console > Knowledge bases](https://console.aws.amazon.com/bedrock/home#/knowledge-bases)
+2. Click **Create knowledge base with vector store**
+3. Configure:
+  - **Name**: `lab-knowledge-base`
+  - **IAM role**: Create new role
+  - **Data source**: S3
+4. Click **Next**
+5. Configure:
+  - **S3 URI**: Your bucket from step 2.1
+6. Click **Next**
+7. Configure:
+  - **Embedding model**: Titan Embeddings G1 - Text
+  - **Vector database**: Quick create (OpenSearch Serverless)
+8. Click **Create**
+9. **Sync the data source** after creation
+10. **Save the Knowledge Base ID** (format: `XXXXXXXXXX`)
+
+```bash
+export KNOWLEDGE_BASE_ID=$(aws bedrock-agent list-knowledge-bases --query "knowledgeBaseSummaries[?name=='lab-knowledge-base'].knowledgeBaseId" --output text)
+echo "Knowledge Base ID: $KNOWLEDGE_BASE_ID"
+```
+
+**Vector Store Options:**
+| Feature | OpenSearch Serverless | S3 (GraphRAG) |
+|---------|-----------------------|---------------|
+| Setup | Quick create in console | Requires additional configuration |
+| Cost | Higher (serverless compute) | Lower (storage only) |
+| Query Speed | Fast (optimized vector search) | Slower (on-demand processing) |
+| Scalability | Auto-scales | Manual scaling |
+| Best For | Production workloads, low latency | Cost-sensitive, smaller datasets |
+
+For this lab, we use OpenSearch Serverless for simplicity and performance. For production, evaluate based on your latency and cost requirements.
+
+---
+
+## Part 3: Deploy Agent with Features
+
+The agent in `agent.py` includes:
+- GuardRails configuration via `BEDROCK_GUARDRAIL_ID`
+- Knowledge Base tool via `BEDROCK_KNOWLEDGE_BASE_ID`
+- Memory via `BEDROCK_MEMORY_ID`
+
+### Step 3.1: Deploy with Features
+
+```bash
+# Pre-create memory ~3m
+agentcore memory create langgraph_features_agent_mem --wait
+export MEMORY_ID=$(aws bedrock-agentcore-control list-memories --region us-east-1 --query "memories[?contains(id, 'langgraph_features_agent')].id" --output text)
+echo "Memory ID: $MEMORY_ID"
+
+# Run the configuration wizard:
 agentcore configure -e agent_with_all_features.py -n langgraph_full_demo -r us-east-1 --non-interactive
+
+# Deploy with Memory ID to enable conversation persistence, or leave out the ID line if desired
+agentcore launch \
+  --env BEDROCK_GUARDRAIL_ID=$GUARDRAIL_ID \
+  --env BEDROCK_GUARDRAIL_VERSION=$GUARDRAIL_VERSION \
+  --env BEDROCK_KNOWLEDGE_BASE_ID=$KNOWLEDGE_BASE_ID \
+  --env BEDROCK_MEMORY_ID=$MEMORY_ID
 ```
 
-This creates `.bedrock_agentcore.yaml` with your AWS account details.
+### Step 3.2: Add Knowledge Base Permissions
 
-### Add Feature Configuration
-
-Edit `.bedrock_agentcore.yaml` and add your resource IDs as environment variables:
-
-```yaml
-agents:
-  langgraph_full_demo:
-    entrypoint: agent_with_all_features.py
-    platform: linux/arm64
-    environment:
-      # Add your resource IDs here
-      BEDROCK_GUARDRAIL_ID: "gr-abc123xyz"
-      BEDROCK_GUARDRAIL_VERSION: "1"
-      BEDROCK_KNOWLEDGE_BASE_ID: "KB123ABC"
-      BEDROCK_MEMORY_ID: "MEM123ABC"
-    aws:
-      region: us-east-1
-      execution_role_auto_create: true
-      ecr_auto_create: true
-      network_configuration:
-        network_mode: PUBLIC
-      observability:
-        enabled: true
-```
-
-**Note**: All features are optional. Only include environment variables for features you want to enable.
-
-### What is `.bedrock_agentcore.yaml`?
-
-This file is the deployment configuration for your agent. It tells AWS:
-- **Entry point**: Which Python file contains your agent (`agent_with_all_features.py`)
-- **Environment variables**: Your GuardRail, Knowledge Base, and Memory IDs
-- **AWS settings**: Region, IAM roles, ECR repository
-- **Container config**: Platform (ARM64/x86), Docker settings
-- **Network**: Public or VPC access
-- **Observability**: CloudWatch logging
-
-Think of it as your deployment blueprint - similar to `docker-compose.yml` or a Kubernetes manifest.
-
-## Step 4: Deploy to AWS
+The agent's IAM role needs permission to query the Knowledge Base. Run this after deployment:
 
 ```bash
-agentcore launch
+# Get the agent's execution role name (use awk to handle tab-separated output if multiple roles exist)
+export AGENT_ROLE=$(aws iam list-roles --query "Roles[?contains(RoleName, 'AgentCoreSDKRuntime')].RoleName" --output text | awk '{print $1}')
+
+# Add Knowledge Base access policy
+aws iam put-role-policy \
+  --role-name $AGENT_ROLE \
+  --policy-name KnowledgeBaseAccessPolicy \
+  --policy-document '{
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": ["bedrock:Retrieve"],
+        "Resource": ["arn:aws:bedrock:us-east-1:'$(aws sts get-caller-identity --query Account --output text)':knowledge-base/*"]
+      }
+    ]
+  }'
 ```
 
-This will:
-1. Create an ECR repository for your agent container
-2. Build and push the Docker image via CodeBuild
-3. Deploy to AgentCore Runtime with your configured features
-4. Output your Agent ARN
+---
 
-Save the Agent ARN from the output — you'll need it to invoke the agent.
-
-## Step 5: Test the Deployed Agent
-
-### Using AgentCore CLI
-
-```bash
-agentcore invoke '{"prompt": "What is AcmeCorp?"}'
-```
-
-### Using Python SDK
-
-```bash
-# Set your Agent ARN (from agentcore launch output)
-export AGENT_ARN="arn:aws:bedrock-agentcore:us-east-1:YOUR_ACCOUNT_ID:runtime/YOUR_AGENT_ID"
-
-# Run the test script (copy from aws_base_agent/)
-python invoke_deployed_agent.py "What is AcmeCorp?"
-```
-
-## Testing Each Feature
+## Part 4: Test the Features
 
 ### Test GuardRails
-```bash
-# Try to trigger content filter
-agentcore invoke '{"prompt": "[content that should be blocked]"}'
 
-# Try to share PII
-agentcore invoke '{"prompt": "My email is test@example.com and SSN is 123-45-6789"}'
+```bash
+# Test content filtering (should be blocked)
+agentcore invoke '{"prompt": "Tell me how to hack a computer"}'
+
+# Test PII handling (should be blocked/anonymized)
+agentcore invoke '{"prompt": "My SSN is 123-45-6789"}'
+
+# Test denied topics (if configured)
+agentcore invoke '{"prompt": "Give me specific stock investment advice"}'
 ```
 
 ### Test Knowledge Base
+
 ```bash
 # Query your documents
-agentcore invoke '{"prompt": "What are AcmeCorp products?"}'
-agentcore invoke '{"prompt": "How do I contact support?"}'
+agentcore invoke '{"prompt": "What products does AcmeCorp offer?"}'
+agentcore invoke '{"prompt": "How do I contact customer support?"}'
+agentcore invoke '{"prompt": "What is the return policy?"}'
 ```
 
 ### Test Memory
-```bash
-# First conversation
-agentcore invoke '{"prompt": "My name is Alice"}'
 
-# Later conversation (same thread_id)
-agentcore invoke '{"prompt": "What is my name?"}'
-```
+AgentCore Memory provides persistent conversation state using LangGraph's checkpointing system. Here's how it works:
 
-## Files
+- **Stateless by default**: Without a `thread_id`, each request is independent (no conversation history)
+- **thread_id**: Groups messages into a conversation. Same thread_id = same conversation context
+- **Persistence**: Conversation state is stored in AgentCore's managed memory service, surviving agent restarts
+- **Isolation**: Different thread_ids are completely isolated - the agent has no knowledge across threads
 
-| File | Description |
-|------|-------------|
-| `agent_with_all_features.py` | Agent with GuardRails, Knowledge Base, and Memory |
-| `requirements.txt` | Python dependencies |
-
-## Customizing the Agent
-
-Edit `agent_with_all_features.py` to add your own tools:
-
-```python
-@tool
-def my_custom_tool(param: str) -> str:
-    """Description of what this tool does."""
-    # Your implementation
-    return result
-
-tools = [get_weather, query_knowledge_base, my_custom_tool]
-```
-
-Then redeploy:
+> **Important** GuardRails scan the entire conversation context. If blocked responses accumulate in a thread, subsequent requests may also be blocked. Use unique `thread_id` values for independent conversations, or omit `thread_id` for stateless operation
 
 ```bash
-agentcore launch
+# Step 1: Introduce yourself
+agentcore invoke '{"prompt": "My name is Alice and I work at TechCorp", "thread_id": "session-1"}'
+
+# Step 2: Test recall
+agentcore invoke '{"prompt": "What is my name and where do I work?", "thread_id": "session-1"}'
+# Expected: Should remember that Alice works at TechCorp
+
+# Step 3: Test isolation
+agentcore invoke '{"prompt": "What is my name and where do I work?", "thread_id": "session-2"}'
+# Expected: Should NOT know the name or place of occupation. Note that omitting the session would also work for our setup
+
 ```
 
 ## Cleanup
@@ -201,12 +233,24 @@ agentcore launch
 Remove all AWS resources created by this deployment:
 
 ```bash
-agentcore destroy
+agentcore destroy --force
+
+# Delete GuardRail
+aws bedrock delete-guardrail --guardrail-identifier $GUARDRAIL_ID
+
+# Delete Memory
+aws bedrock-agent delete-memory --memory-id $MEMORY_ID
+
+# Delete Cloudwatch log groups (replace AGENT_ID with actual IDs)
+aws logs describe-log-groups --log-group-name-prefix /aws/bedrock-agentcore/runtimes/ --query 'logGroups[].logGroupName' --output text
+
+# Delete S3 Bucket
+aws s3 rb s3://langgraph-lab-kb-$(aws sts get-caller-identity --query Account --output text) --force
+
+# Delete Knowledge Base (via console - includes vector store cleanup)
 ```
 
 This deletes the AgentCore Runtime agent, ECR repository, and CodeBuild project.
-
-**Note**: This does NOT delete your GuardRail, Knowledge Base, or Memory resources. Delete those manually in the AWS Console if needed.
 
 ## Troubleshooting
 
@@ -225,10 +269,21 @@ This deletes the AgentCore Runtime agent, ECR repository, and CodeBuild project.
 - Check GuardRail is active in AWS Console
 - Review CloudWatch logs for GuardRail trace information
 
+**GuardRails blocking all requests:**
+- This can happen when blocked responses accumulate in a conversation thread
+- The GuardRail scans the entire conversation context, including previously blocked messages
+- Use a fresh `thread_id` or omit it entirely for stateless operations
+- To reset, delete and recreate the memory. You will need to redeploy with a fresh memory ID
+
 **Knowledge Base not returning results:**
 - Verify data source is synced
 - Check `BEDROCK_KNOWLEDGE_BASE_ID` is correct
 - Test queries directly in AWS Console
+
+**Knowledge Base returns "Access denied" or "technical issue" error**
+- The agent's IAM role needs `bedrock:Retrieve` permission
+- Run Step 3.4 to add the KnowledgeBaseAccessPolicy
+- Verify the policy was attached: `aws iam list-role-policies --role-name $AGENT_ROLE`
 
 **Memory not persisting:**
 - Verify `BEDROCK_MEMORY_ID` is set

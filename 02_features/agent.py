@@ -1,40 +1,23 @@
 """
-LangGraph + Bedrock AgentCore Demo - All Features Combined (Deployed Mode)
+Lab 2: LangGraph Agent with GuardRails, Knowledge Base & Memory
 
-This comprehensive example demonstrates all three AWS Bedrock Agents features
-in deployed mode using BedrockAgentCoreApp wrapper:
-1. GuardRails - Content filtering and safety controls
-2. Knowledge Bases - RAG (Retrieval Augmented Generation) for document retrieval
-3. Memory - Persistent conversation state across sessions
+This agent builds on Lab 1 by adding:
+- GuardRails: Content filtering and safety controls
+- Knowledge Base: RAG for document retrieval
+- Memory: Persistent conversation state
 
-Each feature is independently configurable via environment variables and can be
-enabled or disabled without affecting the others. The agent gracefully handles
-missing or invalid configuration and provides helpful error messages.
+Prerequisites:
+- Complete Lab 1 (deploy basic agent, create GuardRail, create Knowledge Base)
+- Set environment variables: BEDROCK_GUARDRAIL_ID, BEDROCK_KNOWLEDGE_BASE_ID
 
-Feature Configuration:
-----------------------
-GuardRails:
-  - BEDROCK_GUARDRAIL_ID: Your GuardRail resource ID from AWS Console
-  - BEDROCK_GUARDRAIL_VERSION: Version number (e.g., "1") or "DRAFT"
-
-Knowledge Base:
-  - BEDROCK_KNOWLEDGE_BASE_ID: Your Knowledge Base resource ID from AWS Console
-
-Memory:
-  - BEDROCK_MEMORY_ID: Your Memory resource ID from AWS Console
-
-All features are optional. If not configured, the agent works normally without them.
-
-Deployment:
------------
-This file is designed for deployment to AWS Bedrock AgentCore Runtime using the
-agentcore CLI. It uses BedrockAgentCoreApp wrapper for compatibility with the
-AgentCore deployment infrastructure.
-
-To deploy:
-1. Configure environment variables in your deployment configuration
-2. Run: agentcore deploy --agent-file deployed/agent_with_all_features.py
-3. Test: agentcore invoke --agent-name your-agent-name --prompt "Hello"
+AWS Documentation References ...
+- LangChain docs (general): https://python.langchain.com/
+- LangChain integrations (search for "AmazonKnowledgeBasesRetriever"): https://python.langchain.com/
+- AWS Bedrock documentation: https://docs.aws.amazon.com/bedrock/latest/userguide/what-is-bedrock.html
+- AWS Bedrock Knowledge Bases: https://docs.aws.amazon.com/bedrock/latest/userguide/knowledge-bases.html
+- AWS Bedrock GuardRails / safety controls: https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails.html
+- Bedrock AgentCore runtime (Agent deployment): https://docs.aws.amazon.com/bedrock/latest/userguide/agentcore.html
+- LangGraph Checkpointing: https://langchain-ai.github.io/langgraph/concepts/persistence/
 """
 
 import os
@@ -45,16 +28,8 @@ from typing import AsyncGenerator, Optional
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from langchain_aws import ChatBedrock, AmazonKnowledgeBasesRetriever
 from langchain_core.tools import tool
-from langchain.agents import create_agent
+from langgraph.prebuilt import create_react_agent
 from langgraph_checkpoint_aws import AgentCoreMemorySaver
-
-# Documentation links and references (useful when configuring or extending):
-# - LangChain docs (general): https://python.langchain.com/
-# - LangChain integrations (search for "AmazonKnowledgeBasesRetriever"): https://python.langchain.com/
-# - AWS Bedrock documentation: https://docs.aws.amazon.com/bedrock/latest/userguide/what-is-bedrock.html
-# - AWS Bedrock Knowledge Bases: https://docs.aws.amazon.com/bedrock/latest/userguide/knowledge-bases.html
-# - AWS Bedrock GuardRails / safety controls: https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails.html
-# - Bedrock AgentCore runtime (Agent deployment): https://docs.aws.amazon.com/bedrock/latest/userguide/agentcore.html
 
 # ============================================================================
 # LOGGING CONFIGURATION
@@ -71,222 +46,50 @@ logger = logging.getLogger(__name__)
 # This makes it clear which environment variables the agent expects and allows
 # local testing without setting global environment variables.
 try:
-    # Optional import; if unavailable we continue without loading .env
     from dotenv import load_dotenv
 
     _local_dotenv = os.path.join(os.path.dirname(__file__), ".env")
     if os.path.exists(_local_dotenv):
         load_dotenv(_local_dotenv)
-        logger.info("Loaded environment variables from .env for local development")
+        logger.info("Loaded .env for local development")
     else:
         logger.debug("No .env file found; create aws_kb_gr_agent/.env from .env.example for local testing")
-except Exception:
-    logger.debug("python-dotenv not installed; skipping .env loading. Add python-dotenv to requirements for local .env support")
-
-# Helpful startup hint listing expected environment variables for clarity
-logger.info(
-    "Expected env vars: BEDROCK_GUARDRAIL_ID, BEDROCK_GUARDRAIL_VERSION, "
-    "BEDROCK_KNOWLEDGE_BASE_ID, BEDROCK_MEMORY_ID. See aws_kb_gr_agent/.env.example for examples."
-)
+except ImportError:
+    pass
 
 # ============================================================================
-# BASIC CONFIGURATION
+# CONFIGURATION
 # ============================================================================
 
 # AWS Region and Model Configuration
 REGION = "us-east-1"
 MODEL_ID = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+GUARDRAIL_ID = os.getenv("BEDROCK_GUARDRAIL_ID")
+GUARDRAIL_VERSION = os.getenv("BEDROCK_GUARDRAIL_VERSION", "DRAFT")
+KNOWLEDGE_BASE_ID = os.getenv("BEDROCK_KNOWLEDGE_BASE_ID")
+MEMORY_ID = os.getenv("BEDROCK_MEMORY_ID")
 
-# System prompt for the agent
+# Feature flags - enable features only when properly configured
+# This allows graceful degradation if a feature isn't set up
+ENABLE_GUARDRAILS = bool(GUARDRAIL_ID and str(GUARDRAIL_ID).strip())
+ENABLE_KNOWLEDGE_BASE = bool(KNOWLEDGE_BASE_ID and str(KNOWLEDGE_BASE_ID).strip())
+ENABLE_MEMORY = bool(MEMORY_ID and str(MEMORY_ID).strip())
+
+# System prompt updated to reflect available capabilities
+# The agent uses this to understand what features it has access to
 SYSTEM_PROMPT = """You are a helpful assistant deployed on AWS Bedrock AgentCore with advanced capabilities:
 - Content safety filtering via GuardRails
 - Access to a knowledge base for document retrieval
 - Memory to remember previous conversations
 
-Be concise and helpful in your responses. Use the knowledge base tool when you need
+Be concise and helpful in your responses. Use the knowledge base tool when you need 
 to answer questions based on specific documents or data sources."""
 
-# ============================================================================
-# FEATURE 1: GUARDRAILS CONFIGURATION
-# ============================================================================
-
-# GuardRails provide content filtering and safety controls for your agent.
-# They can:
-# - Block harmful content (hate speech, violence, sexual content, etc.)
-# - Filter personally identifiable information (PII)
-# - Enforce denied topics (e.g., financial advice, medical advice)
-# - Apply custom word filters
-#
-# GuardRails work by intercepting both user inputs and model outputs, checking
-# them against configured policies, and blocking content that violates those policies.
-#
-# Setup Instructions:
-# 1. Go to AWS Console > Bedrock > GuardRails
-# 2. Click "Create GuardRail"
-# 3. Configure content filters, denied topics, and word filters
-# 4. Create the GuardRail and note the GuardRail ID
-# 5. Set environment variables in your deployment configuration:
-#    BEDROCK_GUARDRAIL_ID="your-guardrail-id"
-#    BEDROCK_GUARDRAIL_VERSION="1"  # or "DRAFT" for testing
-
-GUARDRAIL_ID = os.getenv("BEDROCK_GUARDRAIL_ID")  # e.g. "gr-abc123..."
-GUARDRAIL_VERSION = os.getenv("BEDROCK_GUARDRAIL_VERSION", "DRAFT")
-
-# Feature flag: GuardRails is enabled if GUARDRAIL_ID is provided and non-empty
-ENABLE_GUARDRAILS = bool(GUARDRAIL_ID and str(GUARDRAIL_ID).strip())
-
-# Helpful GuardRails references (near configuration):
-# - AWS Bedrock GuardRails overview: https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails.html
-# - Best practices for designing safety policies: https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails.html#guardrails-best-practices
-
-# ============================================================================
-# FEATURE 2: KNOWLEDGE BASE CONFIGURATION
-# ============================================================================
-
-# Knowledge Bases enable RAG (Retrieval Augmented Generation) by indexing and
-# retrieving documents from your data sources. They allow your agent to ground
-# responses in your own documents rather than relying solely on the LLM's training data.
-#
-# How Knowledge Bases work:
-# 1. Documents are ingested from data sources (S3, web crawler, etc.)
-# 2. Documents are split into chunks and converted to embeddings
-# 3. Embeddings are stored in a vector database (e.g., OpenSearch Serverless)
-# 4. When queried, the user's question is converted to an embedding
-# 5. Vector similarity search finds the most relevant document chunks
-# 6. Retrieved chunks are returned to the agent for context
-#
-# Setup Instructions:
-# 1. Go to AWS Console > Bedrock > Knowledge Bases
-# 2. Click "Create Knowledge Base"
-# 3. Configure data source (S3 bucket, web crawler, etc.)
-# 4. Select embedding model (e.g., Titan Embeddings G1 - Text)
-# 5. Configure vector store (OpenSearch Serverless recommended)
-# 6. Create the Knowledge Base and sync/ingest your documents
-# 7. Set environment variable in your deployment configuration:
-#    BEDROCK_KNOWLEDGE_BASE_ID="your-kb-id"
-
-KNOWLEDGE_BASE_ID = os.getenv("BEDROCK_KNOWLEDGE_BASE_ID")  # e.g. "kb-xyz789..."
-
-# Feature flag: Knowledge Base is enabled if KNOWLEDGE_BASE_ID is provided and non-empty
-ENABLE_KNOWLEDGE_BASE = bool(KNOWLEDGE_BASE_ID and str(KNOWLEDGE_BASE_ID).strip())
-
-# Knowledge Base docs (colocated with KB flag):
-# - AWS Bedrock Knowledge Bases: https://docs.aws.amazon.com/bedrock/latest/userguide/knowledge-bases.html
-# - LangChain retriever docs: https://python.langchain.com/en/latest/modules/indexes/retrievers/overview.html
-
-# ============================================================================
-# FEATURE 3: MEMORY CONFIGURATION
-# ============================================================================
-
-# Memory provides persistent conversation state across sessions. It stores:
-# - Complete message history (user messages and assistant responses)
-# - Tool call history and results
-# - Agent state and intermediate steps
-# - Conversation context across multiple turns
-#
-# Memory is automatically managed by LangGraph's checkpointer system:
-# - State is loaded at the start of each agent turn
-# - State is saved after each agent turn
-# - Each conversation thread has its own isolated memory
-#
-# Setup Instructions:
-# 1. Go to AWS Console > Bedrock > AgentCore > Memory
-# 2. Click "Create Memory"
-# 3. Note the Memory ID
-# 4. Set environment variable in your deployment configuration:
-#    BEDROCK_MEMORY_ID="your-memory-id"
-
-MEMORY_ID = os.getenv("BEDROCK_MEMORY_ID")  # e.g. "mem-456def..."
-
-# Feature flag: Memory is enabled if MEMORY_ID is provided and non-empty
-ENABLE_MEMORY = bool(MEMORY_ID and str(MEMORY_ID).strip())
-
-# Memory docs and notes:
-# - Bedrock AgentCore Memory concepts: https://docs.aws.amazon.com/bedrock/latest/userguide/agentcore-memory.html
-# - If `AgentCoreMemorySaver` is from a third-party lib, refer to that library's README for usage and config.
-
-# ============================================================================
-# CONFIGURATION VALIDATION
-# ============================================================================
-
-def validate_configuration() -> None:
-    """
-    Validate all feature configurations and provide helpful error messages.
-    
-    This function checks that:
-    - If GuardRail ID is provided, version is also provided
-    - Configuration values have valid formats
-    - Required AWS credentials are available
-    
-    Raises:
-        ValueError: If configuration is invalid with helpful remediation message
-    """
-    # Validate GuardRails configuration
-    if ENABLE_GUARDRAILS:
-        if not GUARDRAIL_VERSION:
-            raise ValueError(
-                "GuardRail version is required when GuardRail ID is set.\n"
-                "Set BEDROCK_GUARDRAIL_VERSION environment variable to a version number or 'DRAFT'.\n"
-                "Example: BEDROCK_GUARDRAIL_VERSION=1"
-            )
-        
-        # Basic format validation for GuardRail ID
-        if len(GUARDRAIL_ID) < 5:
-            raise ValueError(
-                f"Invalid GuardRail ID format: '{GUARDRAIL_ID}'\n"
-                "GuardRail IDs should be longer than 5 characters.\n"
-                "Please verify the ID in AWS Console > Bedrock > GuardRails"
-            )
-    
-    # Validate Knowledge Base configuration
-    if ENABLE_KNOWLEDGE_BASE:
-        # Basic format validation for Knowledge Base ID
-        if len(KNOWLEDGE_BASE_ID) < 5:
-            raise ValueError(
-                f"Invalid Knowledge Base ID format: '{KNOWLEDGE_BASE_ID}'\n"
-                "Knowledge Base IDs should be longer than 5 characters.\n"
-                "Please verify the ID in AWS Console > Bedrock > Knowledge Bases"
-            )
-    
-    # Validate Memory configuration
-    if ENABLE_MEMORY:
-        # Basic format validation for Memory ID
-        if len(MEMORY_ID) < 5:
-            raise ValueError(
-                f"Invalid Memory ID format: '{MEMORY_ID}'\n"
-                "Memory IDs should be longer than 5 characters.\n"
-                "Please verify the ID in AWS Console > Bedrock > AgentCore > Memory"
-            )
-
-
-# Run configuration validation at startup
-try:
-    validate_configuration()
-except ValueError as e:
-    logger.error(f"Configuration validation failed: {e}")
-    raise
-
-# ============================================================================
-# FEATURE STATUS LOGGING
-# ============================================================================
-
-# Log which features are enabled/disabled at startup
-# This helps users understand the agent's capabilities
 logger.info("=" * 60)
-logger.info("Bedrock Agents Feature Status (Deployed Mode):")
+logger.info("Lab 2 Agent - Feature Status:")
 logger.info(f"  GuardRails: {'ENABLED' if ENABLE_GUARDRAILS else 'DISABLED'}")
-if ENABLE_GUARDRAILS:
-    logger.info(f"- ID: {GUARDRAIL_ID}")
-    logger.info(f"- Version: {GUARDRAIL_VERSION}")
-
-logger.info(f"Knowledge Base: {'ENABLED' if ENABLE_KNOWLEDGE_BASE else 'DISABLED'}")
-if ENABLE_KNOWLEDGE_BASE:
-    logger.info(f"- ID: {KNOWLEDGE_BASE_ID}")
-
-logger.info(f"Memory:{'ENABLED' if ENABLE_MEMORY else 'DISABLED'}")
-if ENABLE_MEMORY:
-    logger.info(f"- ID: {MEMORY_ID}")
-
+logger.info(f"  Knowledge Base: {'ENABLED' if ENABLE_KNOWLEDGE_BASE else 'DISABLED'}")
+logger.info(f"  Memory: {'ENABLED' if ENABLE_MEMORY else 'DISABLED'}")
 logger.info("=" * 60)
 
 # ============================================================================
@@ -300,10 +103,18 @@ def get_weather(location: str) -> str:
     # Placeholder implementation - replace with real weather API
     return f"The weather in {location} is 72°F and sunny."
 
-# Tools & LangChain references:
-# - LangChain tools overview: https://python.langchain.com/en/latest/modules/agents/tools.html
-# - Patterns for custom tools and tool results handling: https://python.langchain.com/en/latest/modules/agents/how_to/tools.html
-
+@tool 
+def calculate(expression: str) -> str:
+    """Evaluate a mathematical expression. Example: calculate('2+2')"""
+    try:
+        # Security: Restrict eval() to only mathematical characters to prevent code injection
+        allowed = set('0123456789+-*/.() ')
+        if not all(c in allowed for c in expression):
+            return "Error: Only basic math operations are allowed"
+        result = eval(expression, {"__builtins__": {}}, {})
+        return f"Result: {result}"
+    except Exception as e:
+        return f"Error: {e}"
 
 def create_knowledge_base_tool() -> Optional[callable]:
     """
@@ -313,39 +124,18 @@ def create_knowledge_base_tool() -> Optional[callable]:
     relevant documents using RAG (Retrieval Augmented Generation). The tool
     uses vector similarity search to find documents matching the query.
     
-    Knowledge Base Query Flow:
-    1. User's query is passed to the tool
-    2. Query is converted to an embedding using the Knowledge Base's embedding model
-    3. Vector similarity search finds the top N most relevant document chunks
-    4. Retrieved chunks are formatted and returned to the agent
-    5. Agent uses the retrieved context to generate a grounded response
-    
-    Returns:
-        Callable tool function if Knowledge Base is configured, None otherwise
+    This tool is only created if KNOWLEDGE_BASE_ID is set.
+
+    Docs: https://docs.aws.amazon.com/bedrock/latest/userguide/knowledge-base-retrieve.html
     """
-    # References:
-    # - LangChain retriever integrations (see docs for configuration and usage):
-    #   https://python.langchain.com/ (search for "AmazonKnowledgeBasesRetriever")
-    # - AWS Bedrock Knowledge Bases overview and configuration:
-    #   https://docs.aws.amazon.com/bedrock/latest/userguide/knowledge-bases.html
 
     if not ENABLE_KNOWLEDGE_BASE:
-        logger.info("Knowledge Base tool: Not created (feature disabled)")
         return None
-    
-    logger.info(f"Knowledge Base tool: Created (ID: {KNOWLEDGE_BASE_ID})")
     
     @tool
     def query_knowledge_base(query: str) -> str:
         """
         Search the knowledge base for relevant information using RAG.
-        
-        This tool queries an AWS Bedrock Knowledge Base to retrieve relevant documents
-        based on semantic similarity. Use this when you need to answer questions based
-        on specific documents or data sources that have been indexed in the Knowledge Base.
-        
-        The tool performs vector similarity search to find the most relevant document
-        chunks and returns them formatted for the agent to use as context.
         
         Args:
             query: The search query or question to find relevant documents for
@@ -373,7 +163,7 @@ def create_knowledge_base_tool() -> Optional[callable]:
             
             # Retrieve relevant documents using semantic similarity search
             # The query is converted to an embedding and matched against document embeddings
-            results = retriever.get_relevant_documents(query)
+            results = retriever.invoke(query)
             
             if not results:
                 return "No relevant information found in the knowledge base."
@@ -467,9 +257,7 @@ def create_knowledge_base_tool() -> Optional[callable]:
 
 
 # Initialize tools list with basic tools
-tools = [get_weather]
-
-# Add Knowledge Base tool if enabled
+tools = [get_weather, calculate]
 kb_tool = create_knowledge_base_tool()
 if kb_tool:
     tools.append(kb_tool)
@@ -477,155 +265,68 @@ if kb_tool:
 # ============================================================================
 # GUARDRAILS CONFIGURATION
 # ============================================================================
+# GuardRails are configured at the LLM level and automatically filter both
+# user inputs and model outputs. When content violates a policy, Bedrock
+# raises an exception that we handle gracefully in the handle_request function.
 
-def build_guardrails_config() -> Optional[dict]:
-    """
-    Build GuardRails configuration for ChatBedrock.
-    
-    GuardRails are configured at the LLM level and automatically filter both
-    user inputs and model outputs. When content violates a policy, Bedrock
-    raises an exception that we handle gracefully in the handle_request function.
-    
-    Returns:
-        dict: GuardRails configuration for ChatBedrock, or None if disabled
-    """
-    if not ENABLE_GUARDRAILS:
-        logger.info("GuardRails config: Not configured (feature disabled)")
-        return None
-    
-    logger.info(f"GuardRails config: Built (ID: {GUARDRAIL_ID}, Version: {GUARDRAIL_VERSION})")
-    
-    # Build GuardRails configuration for Bedrock
-    # - guardrailIdentifier: The unique ID of your GuardRail resource
-    # - guardrailVersion: Version number (e.g., "1", "2") or "DRAFT" for testing
-    # - trace: Enable trace logging to see why content was blocked (useful for debugging)
-    return {
+if ENABLE_GUARDRAILS:
+    # trace="enabled" logs guardrail decisions for debugging
+    # Docs: https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails-trace.html
+    guardrails_config = {
         "guardrailIdentifier": GUARDRAIL_ID,
         "guardrailVersion": GUARDRAIL_VERSION,
         "trace": "enabled"
     }
+    logger.info(f"GuardRails config: (ID: {GUARDRAIL_ID}, Version: {GUARDRAIL_VERSION})")
 
-
-# Build GuardRails configuration
-guardrails_config = build_guardrails_config()
-
-# ============================================================================
-# LLM INITIALIZATION
-# ============================================================================
-
-# Initialize ChatBedrock LLM with optional GuardRails
-# If guardrails_config is None, the LLM works normally without content filtering
-# If guardrails_config is provided, all LLM inputs/outputs are filtered by GuardRails
-llm = ChatBedrock(
-    model_id=MODEL_ID,
-    region_name=REGION,
-    guardrails=guardrails_config,  # Optional: None or GuardRails config dict
-)
-
+if guardrails_config:
+    llm = ChatBedrock(
+        model_id=MODEL_ID,
+        region_name=REGION,
+        guardrails=guardrails_config,  # Optional: None or GuardRails config dict
+    )
+else:
+    llm = ChatBedrock(
+        model_id=MODEL_ID,
+        region_name=REGION,
+    )
 logger.info(f"LLM initialized: {MODEL_ID} in {REGION}")
 
-# LLM / ChatBedrock references:
-# - LangChain docs (Bedrock/LLM connectors): https://python.langchain.com/
-# - AWS Bedrock model and API documentation: https://docs.aws.amazon.com/bedrock/latest/userguide/what-is-bedrock.html
-
 # ============================================================================
-# MEMORY INITIALIZATION
+# MEMORY (Conversation Persistence)
 # ============================================================================
+# AgentCoreMemorySaver provides persistent conversation memory using AgentCore's
+# Memory service. This enables:
+#     - Multi-turn conversations that remember context
+#     - Session persistence across agent restarts
+#     - User-specific conversation history
+# Docs: https://docs.aws.amazon.com/bedrock/latest/userguide/agentcore-memory.html
+# LangGraph Checkpointing: https://langchain-ai.github.io/langgraph/concepts/persistence 
 
-def initialize_memory() -> tuple[Optional[AgentCoreMemorySaver], bool]:
-    """
-    Initialize AgentCore Memory checkpointer with error handling.
-    
-    Memory initialization can fail for various reasons:
-    - Invalid or missing MEMORY_ID
-    - AWS credentials not configured
-    - Insufficient IAM permissions
-    - Network connectivity issues
-    - Memory resource doesn't exist in the specified region
-    
-    If initialization fails, the agent falls back to stateless mode (no persistence).
-    This ensures the agent remains functional even if Memory is unavailable.
-    
-    Returns:
-        tuple: (checkpointer, success)
-            - checkpointer: AgentCoreMemorySaver instance or None
-            - success: True if initialization succeeded, False otherwise
-    """
-    if not ENABLE_MEMORY:
-        logger.info("Memory: Not initialized (feature disabled)")
-        return None, False
-    
+checkpointer = None
+if ENABLE_MEMORY:
     try:
         # Attempt to initialize Memory checkpointer
         checkpointer = AgentCoreMemorySaver(MEMORY_ID, region_name=REGION)
         logger.info(f"Memory: Successfully initialized (ID: {MEMORY_ID})")
-        return checkpointer, True
-    
     except Exception as e:
         # Memory initialization failed - agent will run without persistence
-        logger.warning(
-            f"Memory initialization failed: {e}. "
-            f"Agent will run in stateless mode (no conversation persistence)."
-        )
-        return None, False
+        # Gracefully degrade to a stateless mode if memory fails
+        logger.warning(f"Memory initialization failed: {e}. Running stateless.")
 
-
-# Initialize Memory checkpointer
-checkpointer, memory_initialized = initialize_memory()
-
-# ============================================================================
-# AGENT CREATION
-# ============================================================================
-
-# Create the agent using langchain.agents.create_agent
-# The agent combines:
-# - LLM with optional GuardRails
-# - Tools (including optional Knowledge Base tool)
-# - Optional Memory checkpointer for conversation persistence
-agent = create_agent(
+agent = create_react_agent(
     model=llm,
     tools=tools,
     system_prompt=SYSTEM_PROMPT,
     checkpointer=checkpointer,  # None if memory is disabled or initialization failed
 )
 
-logger.info("Agent created successfully with all configured features")
-
-# ============================================================================
-# BEDROCKAGENTCOREAPP WRAPPER
-# ============================================================================
-
-# Create BedrockAgentCoreApp for deployment compatibility
-# This wrapper provides the interface required by the agentcore CLI
 app = BedrockAgentCoreApp()
 
 
 @app.entrypoint
 async def handle_request(payload: dict, **kwargs) -> AsyncGenerator[str, None]:
     """
-    Main handler for AgentCore Runtime requests with all features integrated.
-    
-    This function handles all three Bedrock Agents features in deployed mode:
-    
-    1. GuardRails Intervention Handling:
-       When GuardRails blocks content (either user input or model output), Bedrock
-       raises an exception. We catch these and stream a user-friendly message.
-    
-    2. Knowledge Base Integration:
-       The agent can call the query_knowledge_base tool to retrieve relevant documents.
-       Tool calls are handled automatically by LangGraph and streamed appropriately.
-    
-    3. Memory Persistence:
-       If Memory is enabled, conversation state is automatically loaded at the start
-       and saved at the end of each turn. The thread_id and actor_id from the payload
-       identify which conversation to load/save.
-    
-    BedrockAgentCoreApp Compatibility:
-    - Streams responses token by token using async generator
-    - Handles errors gracefully without breaking the streaming contract
-    - Filters out tool calls and only streams final text responses
-    - Compatible with agentcore CLI deployment and invocation
-    
     Parameters:
     -----------
     payload : dict
@@ -652,9 +353,13 @@ async def handle_request(payload: dict, **kwargs) -> AsyncGenerator[str, None]:
     # - actor_id: Identifies the user (for multi-user support)
     # - thread_id: Identifies the conversation session
     actor_id = payload.get("actor_id", "default-user")
-    thread_id = payload.get("thread_id", "default-session")
+    thread_id = payload.get("thread_id")
+
+    if not thread_id:
+        import uuid 
+        thread_id = f"stateless-{uuid.uuid4()}"
+        logger.info(f"No thread_id provided, using stateless mode: {thread_id}")
     
-    # LangChain v1 uses dict format for messages
     input_data = {"messages": [{"role": "user", "content": prompt}]}
     
     # Config for memory persistence (only used if Memory is enabled)
@@ -669,16 +374,12 @@ async def handle_request(payload: dict, **kwargs) -> AsyncGenerator[str, None]:
     
     try:
         # Stream the agent's response
-        # - If Memory is enabled: Agent loads memory for this thread_id before processing
-        #   and saves updated memory after generating the response
-        # - If GuardRails is enabled: All content is filtered automatically
-        # - If Knowledge Base is enabled: Agent can call query_knowledge_base tool
         async for event in agent.astream(input_data, config=config, stream_mode="messages"):
             if isinstance(event, tuple) and len(event) >= 2:
                 chunk, metadata = event[0], event[1]
                 # Only yield AI model text responses, skip tool calls and tool results
                 # This ensures we only stream the final response to the user
-                if metadata.get("langgraph_node") != "model":
+                if metadata.get("langgraph_node") != "agent":
                     continue
                 if hasattr(chunk, "content") and chunk.content:
                     content = chunk.content
@@ -694,26 +395,16 @@ async def handle_request(payload: dict, **kwargs) -> AsyncGenerator[str, None]:
                         yield content
     
     except Exception as e:
-        # ====================================================================
-        # GUARDRAILS INTERVENTION HANDLING
-        # ====================================================================
-        # When GuardRails blocks content, Bedrock raises an exception with specific
-        # keywords in the error message. We detect these and provide user-friendly feedback.
         error_msg = str(e).lower()
         
         # Check if this is a GuardRails intervention
         # Common keywords: "guardrail", "intervention", "blocked", "content policy"
         if any(keyword in error_msg for keyword in ["guardrail", "intervention", "blocked"]):
-            # Log the intervention for monitoring and debugging
             logger.warning(
                 f"GuardRails intervention occurred. "
                 f"GuardRail ID: {GUARDRAIL_ID}, "
                 f"Prompt preview: {prompt[:100]}..."
             )
-            
-            # Stream user-friendly message explaining the intervention
-            # This message is intentionally generic to avoid revealing policy details
-            # We stream it as plain text to maintain compatibility with BedrockAgentCoreApp
             yield (
                 "I apologize, but I cannot provide that response as it violates "
                 "content safety policies. Please rephrase your request or ask "

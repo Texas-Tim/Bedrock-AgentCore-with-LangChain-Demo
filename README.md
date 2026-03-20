@@ -24,11 +24,13 @@ source .venv/bin/activate
 pip install bedrock-agentcore-starter-toolkit
 ```
 
-## LAB START
+## Lab Start
 You can use the quick start instructions below or open the intended lab for detailed deployment instructions. Each lab is independent of the other, so you can build in any order
 
 
 ### Lab 1: Deploy Basic Agent
+
+See [Lab 1 README](01_base_agent/README.md) for detailed instructions
 
 ```bash
 cd 01_base_agent
@@ -110,6 +112,8 @@ agentcore eval online create \
 
 ### Lab 4: Strands Agent with Working Evaluations
 
+See [Lab 4 README](04_strands_evaluation/README.md) for detailed instructions
+
 ```bash
 cd 04_strands_evaluation
 
@@ -185,6 +189,9 @@ agentcore destroy --force
 
 # Delete GuardRail
 aws bedrock delete-guardrail --guardrail-identifier $GUARDRAIL_ID
+
+# Delete Memory
+aws bedrock-agent delete-memory --memory-id $MEMORY_ID
 
 # Delete Knowledge Base (via console - includes vector store cleanup)
 

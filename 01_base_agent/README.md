@@ -3,12 +3,13 @@
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
-- [Part 1: Verify Environment](#part-1-verify-environment)
+- [Part 1: Verify Environment](#part-1-set-up-environment)
 - [Part 2: Review the Agent Code](#part-2-review-the-agent-code-skip-to-part-3-for-deployment)
 - [Part 3: Deploy to AgentCore](#part-3-deploy-to-agentcore)
-- [Part 4: Test the Agent](#part-4-test-the-agent)
+- [Part 4: Test the Agent](#part-4-test-the-deployed-agent)
+- [Cleanup](#cleanup)
 - [Troubleshooting](#troubleshooting)
-- [Resources](#resources)
+- [Resources](#additional-resources)
 
 ---
 
@@ -329,6 +330,9 @@ Remove all AWS resources created by this deployment:
 
 ```bash
 agentcore destroy --force
+
+# Delete Cloudwatch log groups (replace AGENT_ID with actual IDs)
+aws logs describe-log-groups --log-group-name-prefix /aws/bedrock-agentcore/runtimes/ --query 'logGroups[].logGroupName' --output text
 ```
 
 This deletes the AgentCore Runtime agent, ECR repository, and CodeBuild project.

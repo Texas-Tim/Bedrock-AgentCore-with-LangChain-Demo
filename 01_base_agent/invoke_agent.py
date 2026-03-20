@@ -24,7 +24,7 @@ AGENT_ARN = os.environ.get(
 )
 
 
-def invoke_agent(prompt: str, stream: bool = False) -> str:
+def invoke_agent(prompt: str, stream: bool = True) -> str:
     """
     Invoke the deployed agent.
     
