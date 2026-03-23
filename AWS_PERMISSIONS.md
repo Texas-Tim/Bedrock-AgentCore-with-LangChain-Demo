@@ -15,7 +15,8 @@ This document provides detailed IAM permission requirements for using AWS Bedroc
 
 ## Overview
 
-The AgentCore demo requires different IAM permissions depending on which features you use:
+The AgentCore demo requires different IAM permissions
+ depending on which features you use:
 
 | Feature | Required Permissions |
 |---------|---------------------|

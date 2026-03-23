@@ -94,10 +94,6 @@ agentcore configure \
 
 agentcore launch
 
-# Fix OpenTelemetry shebang paths (required until bug is patched)
-./fix_otel_shebang.sh
-agentcore launch
-
 # Test the agent
 agentcore invoke '{"prompt": "What is the weather in Seattle?"}'
 
@@ -108,7 +104,6 @@ agentcore eval online create \
    --evaluator "Builtin.Helpfulness"
 ```
 
-> **NOTE:** The `fix_otel_shebang.sh` script is required to fix hardcoded Python paths in the OpenTelemetry dependencies. Without this fix, the agent will fail with "Runtime initialization time exceeded". 
 
 ### Lab 4: Strands Agent with Working Evaluations
 

@@ -251,19 +251,6 @@ This deletes the AgentCore Runtime agent, ECR repository, and CodeBuild project.
 **Agent not responding**
 - Check CloudWatch logs for errors
 
-**Runtime initialization time exceeded** (Labs 3 and 4)
-
-This error may occur when the `opentelemtry-instrument` script has a hardcoded local Python path. Check CloudWatch logs for:
-```
-/var/task/bin/opentelemetry-instrument: line2: /Users/.../python3: No such file or directory
-```
-
-Fix by running the shebang fix script
-```bash
-./fix_otel_shebang.sh
-agentcore launch
-```
-
 **No spans found for session**
 - Wait 2-5 minutes after invocation for CloudWatch logs to populate
 - Run a new invocation to generate fresh session data

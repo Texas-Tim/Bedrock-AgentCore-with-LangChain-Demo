@@ -59,23 +59,7 @@ agentcore configure -e agent.py -n langgraph_eval_agent -r us-east-1 --non-inter
 agentcore launch
 ```
 
-> **Important:** The first invocation may fail with "Runtime initialization time exceeded" due to a bug in the AgentCore toolkit where Python scripts in the dependencies have hardcoded local paths. Run the fix script below before redeploying.
-
-### Step 1.2: Fix OpenTelemetry Shebang
-
-The `aws-opentelemetry-distro` package includes scripts with hardcoded Python paths from your local venv. These need to be fixed before the agent can start:
-
-```bash
-# Run the fix script
-./fix_otel_shebang.sh 
-
-# Redeploy with fixed dependencies
-agentcore launch
-```
-
-The fix script modifies the cached `dependencies.zip` to use portable shebangs (`#!/usr/bin/env python3`) instead of hardcoded local paths
-
-### Step 1.3: Generate Traffic
+### Step 1.2: Generate Traffic
 
 Run several queries to generate trace data:
 
@@ -267,19 +251,6 @@ This deletes the AgentCore Runtime agent, ECR repository, and CodeBuild project.
 
 **Agent not responding**
 - Check CloudWatch logs for errors
-
-**Runtime initialization time exceeded** (Labs 3 and 4)
-
-This error may occur when the `opentelemtry-instrument` script has a hardcoded local Python path. Check CloudWatch logs for:
-```
-/var/task/bin/opentelemetry-instrument: line2: /Users/.../python3: No such file or directory
-```
-
-Fix by running the shebang fix script
-```bash
-./fix_otel_shebang.sh
-agentcore launch
-```
 
 **No spans found for session**
 - Wait 2-5 minutes after invocation for CloudWatch logs to populate
