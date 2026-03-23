@@ -1,0 +1,54 @@
+# Virtual environments
+.venv/
+.env
+venv/
+env/
+ENV/
+
+# Python cache
+__pycache__/
+__pycache__*
+*.py[cod]
+.Python
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo 
+
+# Git
+.git/
+.gitignore 
+.gitattributes
+
+# Testing
+tests/
+pytest_cache/
+.pytest_cache/
+
+# Documentation
+*.md 
+!README.md 
+
+# Local config
+.env 
+.env.local 
+
+# AWS
+.aws/
+.dockerignore
+.bedrock_agentcore/
+.bedrock_agentcore.yaml
+*.bedrock_agentcore.yaml
+
+# Node.js
+node_modules/
+
+# Development
+*.log
+*.bak
+*.swp
+*.swo
+*~
+.DS_Store

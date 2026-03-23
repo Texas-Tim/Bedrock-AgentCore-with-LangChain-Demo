@@ -3,10 +3,9 @@
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
-- [Part 1: Verify Environment](#part-1-set-up-environment)
-- [Part 2: Review the Agent Code](#part-2-review-the-agent-code-skip-to-part-3-for-deployment)
-- [Part 3: Deploy to AgentCore](#part-3-deploy-to-agentcore)
-- [Part 4: Test the Agent](#part-4-test-the-deployed-agent)
+- [Part 1: Review the Agent Code](#part-1-review-the-agent-code-skip-to-part-3-for-deployment)
+- [Part 2: Deploy to AgentCore](#part-2-deploy-to-agentcore)
+- [Part 3: Test the Agent](#part-3-test-the-deployed-agent)
 - [Cleanup](#cleanup)
 - [Troubleshooting](#troubleshooting)
 - [Resources](#additional-resources)
@@ -25,20 +24,19 @@ By the end of this lab, you will:
 - **Python 3.10+**
 - **AgentCore Starter Toolkit** 
 
-
-## Part 1: Set Up Environment
-
+Navigate to local directory
 ```bash
 cd 01_base_agent
-
 pip install -r requirements.txt
 ```
 
+Verify AWS credentials
 ```bash
-# Verify AWS credentials
 aws sts get-caller-identity
+```
 
-# Verify Bedrock model access
+Verify Bedrock model access
+```bash
 aws bedrock list-foundation-models --region us-east-1 \
   --query "modelSummaries[?contains(modelID, 'claude')].[modelId]" \
   --output table
@@ -47,7 +45,7 @@ Note: If you don't see your expected model, this lab uses: `anthropic.claude-son
 
 ---
 
-## Part 2: Review the Agent Code (skip to Part 3 for deployment)
+## Part 1: Review the Agent Code (skip to Part 3 for deployment)
 
 Open `agent.py` and review the structure. The agent is built using four key components:
 
@@ -154,11 +152,11 @@ Tools extend the agent's capabilities beyond text generation. Each tool requires
 
 
 
-## Part 3: Deploy to AgentCore
+## Part 2: Deploy to AgentCore
 
 The AgentCore deployment process packages your agent as a Docker container and deploys it to AWS-managed infrastructure. The CLI handles the complexity of ECR, CodeBuild, and runtime configuration.
 
-### Step 3.1: Configure Deployment
+### Step 2.1: Configure Deployment
 
 ```bash
 agentcore configure \
@@ -200,7 +198,7 @@ You can edit this file to customize:
 
 ---
 
-### Step 3.2: Deploy to AWS
+### Step 2.2: Deploy to AWS
 **Note:** The AgentCore CLI offers two deployment commands:
 - `agentcore launch` - Container-based deployment using Docker and CodeBuild. We are using containers for this deployment
 - `agentcore deploy` - ZIP-based deployment that packages dependencies without Docker
@@ -218,7 +216,7 @@ agentcore launch
 
 ---
 
-### Step 3.3: Save the Agent ARN
+### Step 2.3: Save the Agent ARN
 
 After successful deployment, the CLI outputs your Agent ARN:
 
@@ -249,7 +247,7 @@ arn:aws:bedrock-agentcore:us-east-1:123456789012:runtime/abc123def456
     |__ ARN prefix
 ```
 
-### Step 3.4: Verify Deployment Status
+### Step 2.4: Verify Deployment Status
 
 Check that your agent is running:
 
@@ -269,9 +267,9 @@ agentcore status
 
 ---
 
-## Part 4: Test the Deployed Agent
+## Part 3: Test the Deployed Agent
 
-### Step 4.1: Test via CLI
+### Step 3.1: Test via CLI
 
 ```bash
 # Test weather tool
@@ -285,7 +283,7 @@ agentcore invoke '{"prompt": "Hello, what can you help me with?"}'
 ```
 
 
-### Step 4.2: Test via Python SDK
+### Step 3.2: Test via Python SDK
 
 ```bash
 python invoke_agent.py "What is the weather in Seattle?"

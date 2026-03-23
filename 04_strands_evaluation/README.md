@@ -1,10 +1,10 @@
-# Lab 3: Observability and Evaluation
+# Lab 4: Strands Agent for Observability and Tracing
 
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
 - [Overview](#overview)
-- [Part 1: Deploy Agent with Observability](#part-1-deploy-agent-with-observability)
+- [Part 1: Deploy Agent with Observability](#part-1-deploy-strands-agent)
 - [Part 2: View Observability Dashboard](#part-2-view-observability-dashboard)
 - [Part 3: Run On-Demand Evaluation](#part-3-run-on-demand-evaluation)
 - [Part 4: Set Up Online Evaluation](#part-4-set-up-online-evaluation)
@@ -14,7 +14,7 @@
 
 ---
 
-In this lab, you'll add observability and evaluation to your agent using: 
+In this lab, you'll deploy a Strands agent with fully working evaluations: 
 - **AgentCore Observability**: Automatic tracing, metrics, and CloudWatch dashboard
 - **AgentCore Evaluations**: LLM-as-a-Judge for automated quality assessment
 
@@ -25,21 +25,20 @@ In this lab, you'll add observability and evaluation to your agent using:
 - **Python 3.10+**
 - **AgentCore Starter Toolkit** 
 
-Navigate to this lab directory:
+Navigate to this local directory
 ```bash
-cd 03_evaluation_workflow
+cd 04_strands_evaluation
 pip install -r requirements.txt
 ```
+
 ---
 
 ## Overview
 
-AgentCore provides built-in observability including logs and basic metrics. For full tracing with spans (required for evaluations), you need:
+This lab uses Strands Agents instead of LangGraph
 
-1. **`aws-opentelemetry-distro`** - For basic HTTP/boto3 tracing to CloudWatch
-2. **`opentelemetry-instrumentation`** - For LangChain-specific spans required by the Evaluate API
+Strands Agents automatically produces spans with `strands.telemetry.tracer` scope, which the Evaluate API can parse to extract the agents responses
 
-> **Important** The AgentCore Evaluate API only accepts spans with specific scopes (`opentelemetry.instrumentation.langchain`, `openinference.instrumentation.langchain`, or `strands.telemetry.tracer`). Without LangChain instrumentation, evaluations will fail with "no spans with supported scope".
 
 ```
 
@@ -47,35 +46,19 @@ AgentCore provides built-in observability including logs and basic metrics. For 
 
 
 
-## Part 1: Deploy Agent with Observability
+## Part 1: Deploy Strands Agent
 
-### Step 1.1: Configure and Build Dependencies
+### Step 1.1: Configure and Deploy
 
 ```bash
 # Configure deployment
-agentcore configure -e agent.py -n langgraph_eval_agent -r us-east-1 --non-interactive
+agentcore configure -e agent.py -n strands_eval_agent -r us-east-1 --non-interactive
 
 # Build dependencies and deploy agent to AWS
 agentcore launch
 ```
 
-> **Important:** The first invocation may fail with "Runtime initialization time exceeded" due to a bug in the AgentCore toolkit where Python scripts in the dependencies have hardcoded local paths. Run the fix script below before redeploying.
-
-### Step 1.2: Fix OpenTelemetry Shebang
-
-The `aws-opentelemetry-distro` package includes scripts with hardcoded Python paths from your local venv. These need to be fixed before the agent can start:
-
-```bash
-# Run the fix script
-./fix_otel_shebang.sh 
-
-# Redeploy with fixed dependencies
-agentcore launch
-```
-
-The fix script modifies the cached `dependencies.zip` to use portable shebangs (`#!/usr/bin/env python3`) instead of hardcoded local paths
-
-### Step 1.3: Generate Traffic
+### Step 1.2: Generate Traffic
 
 Run several queries to generate trace data:
 
@@ -93,7 +76,7 @@ agentcore invoke '{"prompt": "Hello, what can you help me with?"}'
 
 1. Open [CloudWatch GenAI Observability Dashboard](https://console.aws.amazon.com/cloudwatch/home?region=us-east-1#gen-ai-observability/agent-core)
 2. Select the **Bedrock AgentCore** tab
-3. Find your agent (`langgraph_eval_agent`)
+3. Find your agent (`strands_eval_agent`)
 
 > **Note:** Observability data may take 2-5 minutes to appear after the first invocation
 
@@ -180,11 +163,11 @@ Online evaluation automatically samples live traffic and evaluates it continuous
 
 ```bash
 agentcore eval online create \
-  --name lab_eval_config \
+  --name strands_eval_config \
   --samplint-rate 10.0 \
   --evaluator "Builtin.Helpfulness" \
   --evaluator "Builtin.GoalSuccessRate" \
-  --description "Lab 3 evaluation config"
+  --description "Lab 4 Strands evaluation config"
 ```
 
 Parameters:
@@ -195,14 +178,14 @@ Parameters:
 
 ```bash
 # List all configs
-agentcore eval online list | grep lab_eval_config
+agentcore eval online list | grep strands_eval_config
 
 # Export the config ID
 export EVAL_CONFIG_ID=$(agentcore eval online list 2>/dev/null | grep -oE '[a-z_]+-[A-Za-z0-9]+' | head -1)
-echo "Evaluation Config ID: $EVAL_CONFIG_ID"
+echo "Evaluation Config ID: $STRANDS_CONFIG_ID"
 
 # Get details for the config
-agentcore eval online get --config-id $EVAL_CONFIG_ID
+agentcore eval online get --config-id $STRANDS_CONFIG_ID
 ```
 
 ### Step 4.3: Generate Traffic for Evaluation
@@ -246,7 +229,7 @@ agentcore destroy --force
 # Delete Cloudwatch log groups
 aws logs describe-log-groups --log-group-name-prefix /aws/bedrock-agentcore/runtimes/ --query 'logGroups[].logGroupName' --output text
 
-agentcore eval online delete --config-id $EVAL_CONFIG_ID
+agentcore eval online delete --config-id $STRANDS_CONFIG_ID
 ```
 
 This deletes the AgentCore Runtime agent, ECR repository, and CodeBuild project.
@@ -288,10 +271,7 @@ agentcore launch
 
 ## Additional Resources
 
-- [AWS Bedrock Documentation](https://docs.aws.amazon.com/bedrock/)
-- [Bedrock AgentCore Documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/agents.html)
-- [Bedrock AgentCore Starter Toolkit](https://github.com/awslabs/bedrock-agentcore-starter-toolkit)
-- [LangGraph Documentation](https://langchain-ai.github.io/langgraph/)
-- [Docker Documentation](https://docs.docker.com/)
-- [AWS ECR Documentation](https://docs.aws.amazon.com/ecr/)
-- [AWS CodeBuild Documentation](https://docs.aws.amazon.com/codebuild/)
+- [Strands Agents Documentation](https://strandsagents.com/)
+- [AgentCore Observability Guide](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/observability.html)
+- [AgentCore Evaluations Guide](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/evaluations.html)
+- [AgentCore Evaluators Guide](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/evaluators.html)
