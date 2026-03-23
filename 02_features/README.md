@@ -2,7 +2,14 @@
 
 ## Table of Contents
 
-
+- [Prerequisites](#prerequisites)
+- [Part 1: Create a GuardRail](#part-1-create-a-guardrail)
+- [Part 2: Create a Knowledge Base](#part-2-create-a-knowledge-base)
+- [Part 3: Deploy Agent with Features](#part-3-deploy-agent-with-features)
+- [Part 4: Test the Features](#part-4-test-the-features)
+- [Cleanup](#cleanup)
+- [Troubleshooting](#troubleshooting)
+- [Resources](#additional-resources)
 
 --- 
 
@@ -241,7 +248,7 @@ aws bedrock delete-guardrail --guardrail-identifier $GUARDRAIL_ID
 # Delete Memory
 aws bedrock-agent delete-memory --memory-id $MEMORY_ID
 
-# Delete Cloudwatch log groups (replace AGENT_ID with actual IDs)
+# Delete Cloudwatch log groups
 aws logs describe-log-groups --log-group-name-prefix /aws/bedrock-agentcore/runtimes/ --query 'logGroups[].logGroupName' --output text
 
 # Delete S3 Bucket

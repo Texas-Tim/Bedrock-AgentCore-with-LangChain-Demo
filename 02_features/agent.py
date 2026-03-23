@@ -53,7 +53,7 @@ try:
         load_dotenv(_local_dotenv)
         logger.info("Loaded .env for local development")
     else:
-        logger.debug("No .env file found; create aws_kb_gr_agent/.env from .env.example for local testing")
+        logger.debug("No .env file found; create agent/.env from .env.example for local testing")
 except ImportError:
     pass
 
