@@ -5,14 +5,14 @@ Build and deploy AI agents using LangGraph with AWS Bedrock AgentCore. This repo
 ## Lab Structure
 ```
 Lab 1: Deploy Basic Agent       Lab 2: Add Features              Lab 3: LangGraph Eval        Lab 4: Strands Eval
-┌───────────────────────┐      ┌───────────────────────┐   ┌───────────────────────┐    ┌───────────────────────┐
-│ • Set up environment  │─────▶│ • Create GuardRail    │──▶│ • OpenTelemetry       │    │ • Strands Agent       │
-│ • Deploy to AgentCore │      │ • Create Knowledge    │   │   Tracing             │    │ • Working Evaluations │
-│ • Test via CLI/SDK    │      │   Base                │   │ • Online Evaluation   │    │ • On-demand & Online  │
-│                       │      │ • Add Memory          │   │ • GenAI Dashboard     │    │ • Full API Support    │
-│                       │      │ • Deploy with all     │   │ • (Known Limitations) │    │                       │
-│                       │      │   features            │   │                       │    │                       │
-└───────────────────────┘      └───────────────────────    └───────────────────────┘    └───────────────────────┘
+┌───────────────────────┐      ┌───────────────────────┐     ┌───────────────────────┐    ┌───────────────────────┐
+│ • Set up environment  │─────▶│ • Create GuardRail    │────▶│ • OpenTelemetry       │    │ • Strands Agent       │
+│ • Deploy to AgentCore │      │ • Create Knowledge    │     │   Tracing             │    │ • Working Evaluations │
+│ • Test via CLI/SDK    │      │   Base                │     │ • Online Evaluation   │    │ • On-demand & Online  │
+│                       │      │ • Add Memory          │     │ • GenAI Dashboard     │    │ • Full API Support    │
+│                       │      │ • Deploy with all     │     │ • (Known Limitations) │    │                       │
+│                       │      │   features            │     │                       │    │                       │
+└───────────────────────┘      └───────────────────────      └───────────────────────┘    └───────────────────────┘
                                                                          │                            ▲
                                                                          │    If evaluations needed   │
                                                                          └────────────────────────────┘
