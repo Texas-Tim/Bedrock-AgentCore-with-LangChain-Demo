@@ -42,7 +42,16 @@ AgentCore provides built-in observability including logs and basic metrics. For 
 > **Important** The AgentCore Evaluate API only accepts spans with specific scopes (`opentelemetry.instrumentation.langchain`, `openinference.instrumentation.langchain`, or `strands.telemetry.tracer`). Without LangChain instrumentation, evaluations will fail with "no spans with supported scope".
 
 ```
-
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────────┐
+│  Your Agent     │────▶│  CloudWatch      │────▶│  AgentCore          │
+│  (deployed)     │     │  (Logs/Metrics)  │     │  Evaluations        │
+└─────────────────┘     └──────────────────┘     └─────────────────────┘
+        │                                                  │
+        │ LangchainInstrumentor()                          ▼
+        │ (required for evals)                    ┌─────────────────────┐
+        └────────────────────────────────────────▶│  GenAI Dashboard    │
+                                                  │  (View Results)     │
+                                                  └─────────────────────┘
 ```
 
 
