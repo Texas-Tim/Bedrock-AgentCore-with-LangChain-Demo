@@ -22,11 +22,12 @@ AWS Documentation References ...
 - AgentCore Online Evaluation: https://docs.aws.amazon.com/bedrock/latest/userguide/agentcore-evaluation.html
 """
 
+import os
 import json
 import logging
 from typing import AsyncGenerator
 
-from strands.telemetry import StrandsTelemetry()
+from strands.telemetry import StrandsTelemetry
 
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from strands import Agent, tool
@@ -54,8 +55,7 @@ try:
         load_dotenv(_local_dotenv)
         logger.info("Loaded .env for local development")
     else:
-        logger.debug("No .env file found; create 
-        agent/.env from .env.example for local testing")
+        logger.debug("No .env file found; create agent/.env from .env.example for local testing")
 except ImportError:
     pass
 
@@ -108,7 +108,7 @@ model = BedrockModel(
 
 tools = [get_weather, calculate]
 
-agent = create_react_agent(
+agent = Agent(
     model=model,
     tools=tools,
     prompt=SYSTEM_PROMPT,
