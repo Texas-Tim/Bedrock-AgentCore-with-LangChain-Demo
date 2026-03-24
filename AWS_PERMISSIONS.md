@@ -1,34 +1,103 @@
 # AWS IAM Permissions Guide
 
-This document provides detailed IAM permission requirements for using AWS Bedrock Agents features in the AgentCore demo project.
+This document provides detailed IAM permission requirements for using AWS Bedrock AgentCore features in this demo project.
+
+**AWS Documentation References:**
+- [IAM Permissions for AgentCore Runtime](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-permissions.html)
+- [AgentCore Evaluations Prerequisites](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/evaluations-prerequisites.html)
+- [BedrockAgentCoreFullAccess Managed Policy](https://docs.aws.amazon.com/aws-managed-policy/latest/reference/BedrockAgentCoreFullAccess.html)
 
 ## Table of Contents
 
-- [Overview](#overview)
+- [Quick Start: Permissions by Lab](#quick-start-permissions-by-lab)
+- [AWS Managed Policy](#aws-managed-policy)
 - [Basic Bedrock Permissions](#basic-bedrock-permissions)
 - [GuardRails Permissions](#guardrails-permissions)
 - [Knowledge Base Permissions](#knowledge-base-permissions)
 - [Memory Permissions](#memory-permissions)
+- [Observability Permissions (Lab 3 & 4)](#observability-permissions-lab-3--4)
 - [Complete IAM Policy](#complete-iam-policy)
 - [Deployment Permissions](#deployment-permissions)
 - [Troubleshooting Permissions](#troubleshooting-permissions)
 
-## Overview
+---
 
-The AgentCore demo requires different IAM permissions
- depending on which features you use:
+## Quick Start: Permissions by Lab
 
-| Feature | Required Permissions |
-|---------|---------------------|
-| Basic Agent | `bedrock:InvokeModel`, `bedrock:InvokeModelWithResponseStream` |
-| GuardRails | `bedrock:ApplyGuardrail`, `bedrock:GetGuardrail` |
-| Knowledge Base | `bedrock:Retrieve` |
-| Memory | `bedrock-agent-runtime:GetMemory`, `bedrock-agent-runtime:PutMemory` |
-| Deployment | Additional permissions for ECR, CodeBuild, IAM, CloudWatch |
+Each lab requires different permissions. Use this table to identify what you need:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                         PERMISSIONS BY LAB                                       │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│ Lab 1: Base Agent                                                                │
+│   ├── bedrock:InvokeModel                    (LLM calls)                        │
+│   ├── bedrock:InvokeModelWithResponseStream  (Streaming)                        │
+│   └── [Deployment permissions if deploying]                                      │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│ Lab 2: Features (GuardRails, Knowledge Base, Memory)                             │
+│   ├── All Lab 1 permissions                                                      │
+│   ├── bedrock:ApplyGuardrail                 (Content filtering)                │
+│   ├── bedrock:GetGuardrail                   (GuardRail config)                 │
+│   ├── bedrock:Retrieve                       (Knowledge Base RAG)               │
+│   ├── bedrock-agent-runtime:GetMemory        (Conversation state)               │
+│   └── bedrock-agent-runtime:PutMemory        (Save state)                       │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│ Lab 3: Evaluation Workflow (LangGraph + OpenTelemetry Tracing)                   │
+│   ├── All Lab 1 permissions                                                      │
+│   ├── logs:CreateLogGroup                    (CloudWatch log groups)            │
+│   ├── logs:CreateLogStream                   (CloudWatch log streams)           │
+│   ├── logs:PutLogEvents                      (Write traces)                     │
+│   ├── logs:DescribeLogGroups                 (List log groups)                  │
+│   ├── xray:PutTraceSegments                  (X-Ray traces)                     │
+│   ├── xray:PutTelemetryRecords               (X-Ray telemetry)                  │
+│   ├── bedrock-agentcore:CreateOnlineEvaluationConfig  (Evaluation setup)        │
+│   ├── bedrock-agentcore:GetOnlineEvaluationConfig     (Evaluation status)       │
+│   └── bedrock-agentcore:Evaluate             (Run evaluations)                  │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│ Lab 4: Strands Agent with Working Evaluations                                    │
+│   ├── All Lab 3 permissions                                                      │
+│   └── (Same observability/evaluation permissions - Strands uses same APIs)      │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## AWS Managed Policy
+
+For quick setup, AWS provides the `BedrockAgentCoreFullAccess` managed policy that grants broad permissions for all AgentCore capabilities.
+
+**ARN:** `arn:aws:iam::aws:policy/BedrockAgentCoreFullAccess`
+
+### Attach via Console
+
+1. Go to [IAM Console > Users](https://console.aws.amazon.com/iam/home#/users) or [Roles](https://console.aws.amazon.com/iam/home#/roles)
+2. Select your user/role
+3. Click **"Add permissions"** → **"Attach policies"**
+4. Search for `BedrockAgentCoreFullAccess`
+5. Select and attach
+
+### Attach via CLI
+
+```bash
+# For IAM User
+aws iam attach-user-policy \
+  --user-name your-username \
+  --policy-arn arn:aws:iam::aws:policy/BedrockAgentCoreFullAccess
+
+# For IAM Role
+aws iam attach-role-policy \
+  --role-name your-role-name \
+  --policy-arn arn:aws:iam::aws:policy/BedrockAgentCoreFullAccess
+```
+
+> **Note:** This managed policy grants broad permissions. For production, create custom policies following least-privilege principles.
+
+---
 
 ## Basic Bedrock Permissions
 
-These permissions are required for all agents using AWS Bedrock LLMs.
+These permissions are required for all agents using AWS Bedrock LLMs (all labs).
 
 ### Required Actions
 
@@ -64,14 +133,17 @@ To restrict to specific models only:
 ```json
 {
   "Resource": [
-    "arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-sonnet-4-*"
+    "arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-sonnet-4-*",
+    "arn:aws:bedrock:us-east-1::foundation-model/us.anthropic.claude-*"
   ]
 }
 ```
 
+---
+
 ## GuardRails Permissions
 
-These permissions are required when using GuardRails for content filtering.
+These permissions are required when using GuardRails for content filtering (Lab 2).
 
 ### Required Actions
 
@@ -112,7 +184,7 @@ To restrict to specific GuardRails:
 }
 ```
 
-### Creating GuardRails
+### Creating GuardRails (Console Management)
 
 To create and manage GuardRails in the AWS Console, you also need:
 
@@ -128,9 +200,11 @@ To create and manage GuardRails in the AWS Console, you also need:
 }
 ```
 
+---
+
 ## Knowledge Base Permissions
 
-These permissions are required when using Knowledge Bases for RAG.
+These permissions are required when using Knowledge Bases for RAG (Lab 2).
 
 ### Required Actions
 
@@ -169,7 +243,7 @@ To restrict to specific Knowledge Bases:
 }
 ```
 
-### Creating Knowledge Bases
+### Creating Knowledge Bases (Console Management)
 
 To create and manage Knowledge Bases in the AWS Console, you need additional permissions:
 
@@ -222,9 +296,11 @@ To create and manage Knowledge Bases in the AWS Console, you need additional per
 }
 ```
 
+---
+
 ## Memory Permissions
 
-These permissions are required when using Memory for conversation persistence.
+These permissions are required when using Memory for conversation persistence (Lab 2).
 
 ### Required Actions
 
@@ -265,25 +341,210 @@ To restrict to specific Memory resources:
 }
 ```
 
-### Creating Memory Resources
+### Creating Memory Resources (Console Management)
 
-To create and manage Memory resources in the AWS Console:
+To create and manage Memory resources:
 
 ```json
 {
   "Action": [
-    "bedrock-agent-runtime:CreateMemory",
-    "bedrock-agent-runtime:UpdateMemory",
-    "bedrock-agent-runtime:DeleteMemory",
-    "bedrock-agent-runtime:ListMemories"
+    "bedrock-agentcore:CreateMemory",
+    "bedrock-agentcore:DeleteMemory",
+    "bedrock-agentcore:ListMemories",
+    "bedrock-agentcore:GetMemory"
   ],
   "Resource": "*"
 }
 ```
 
+---
+
+## Observability Permissions (Lab 3 & 4)
+
+Lab 3 and Lab 4 use OpenTelemetry (OTEL) to send traces to CloudWatch for AgentCore Online Evaluation. These permissions enable tracing and evaluation.
+
+**AWS Documentation:**
+- [AgentCore Observability](https://docs.aws.amazon.com/bedrock/latest/userguide/agentcore-observability.html)
+- [AgentCore Evaluations Prerequisites](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/evaluations-prerequisites.html)
+
+### CloudWatch Logs Permissions (Tracing)
+
+Required for OTEL to write traces to CloudWatch:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CloudWatchLogsForTracing",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "logs:DescribeLogGroups",
+        "logs:DescribeLogStreams"
+      ],
+      "Resource": [
+        "arn:aws:logs:*:*:log-group:/aws/bedrock-agentcore/*",
+        "arn:aws:logs:*:*:log-group:/aws/bedrock-agentcore/*:log-stream:*"
+      ]
+    }
+  ]
+}
+```
+
+### X-Ray Permissions (Distributed Tracing)
+
+Required for X-Ray trace segments:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "XRayTracing",
+      "Effect": "Allow",
+      "Action": [
+        "xray:PutTraceSegments",
+        "xray:PutTelemetryRecords",
+        "xray:GetSamplingRules",
+        "xray:GetSamplingTargets"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+### Online Evaluation Permissions
+
+Required to create and manage AgentCore Online Evaluations:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AgentCoreEvaluations",
+      "Effect": "Allow",
+      "Action": [
+        "bedrock-agentcore:CreateEvaluator",
+        "bedrock-agentcore:GetEvaluator",
+        "bedrock-agentcore:ListEvaluators",
+        "bedrock-agentcore:UpdateEvaluator",
+        "bedrock-agentcore:DeleteEvaluator",
+        "bedrock-agentcore:CreateOnlineEvaluationConfig",
+        "bedrock-agentcore:GetOnlineEvaluationConfig",
+        "bedrock-agentcore:ListOnlineEvaluationConfigs",
+        "bedrock-agentcore:UpdateOnlineEvaluationConfig",
+        "bedrock-agentcore:DeleteOnlineEvaluationConfig",
+        "bedrock-agentcore:Evaluate"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "PassRoleForEvaluation",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "arn:aws:iam::*:role/AgentCoreEvaluationRole*",
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "bedrock-agentcore.amazonaws.com"
+        }
+      }
+    },
+    {
+      "Sid": "CloudWatchIndexPolicy",
+      "Effect": "Allow",
+      "Action": [
+        "logs:DescribeIndexPolicies",
+        "logs:PutIndexPolicy"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+### Evaluation Execution Role
+
+AgentCore Evaluations requires a service execution role. The role needs this trust policy:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "TrustPolicyStatement",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "bedrock-agentcore.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": {
+          "aws:SourceAccount": "123456789012"
+        },
+        "ArnLike": {
+          "aws:SourceArn": [
+            "arn:aws:bedrock-agentcore:us-east-1:123456789012:evaluator/*",
+            "arn:aws:bedrock-agentcore:us-east-1:123456789012:online-evaluation-config/*"
+          ]
+        }
+      }
+    }
+  ]
+}
+```
+
+And this permissions policy:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CloudWatchLogRead",
+      "Effect": "Allow",
+      "Action": [
+        "logs:DescribeLogGroups",
+        "logs:GetQueryResults",
+        "logs:StartQuery"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "CloudWatchLogWrite",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "arn:aws:logs:*:*:log-group:/aws/bedrock-agentcore/evaluations/*"
+    },
+    {
+      "Sid": "BedrockInvoke",
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream"
+      ],
+      "Resource": [
+        "arn:aws:bedrock:*::foundation-model/*",
+        "arn:aws:bedrock:*:*:inference-profile/*"
+      ]
+    }
+  ]
+}
+```
+
+---
+
 ## Complete IAM Policy
 
-This policy includes all permissions needed for the AgentCore demo with all features enabled.
+This policy includes all permissions needed for the AgentCore demo with all features enabled (Labs 1-4).
 
 ### For Local Development
 
@@ -333,6 +594,32 @@ This policy includes all permissions needed for the AgentCore demo with all feat
       "Resource": [
         "arn:aws:bedrock:*:*:memory/*"
       ]
+    },
+    {
+      "Sid": "CloudWatchLogsForTracing",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "logs:DescribeLogGroups",
+        "logs:DescribeLogStreams"
+      ],
+      "Resource": [
+        "arn:aws:logs:*:*:log-group:/aws/bedrock-agentcore/*",
+        "arn:aws:logs:*:*:log-group:/aws/bedrock-agentcore/*:log-stream:*"
+      ]
+    },
+    {
+      "Sid": "XRayTracing",
+      "Effect": "Allow",
+      "Action": [
+        "xray:PutTraceSegments",
+        "xray:PutTelemetryRecords",
+        "xray:GetSamplingRules",
+        "xray:GetSamplingTargets"
+      ],
+      "Resource": "*"
     }
   ]
 }
@@ -346,102 +633,158 @@ This policy includes all permissions needed for the AgentCore demo with all feat
 2. Select your user
 3. Click **"Add permissions"** → **"Create inline policy"**
 4. Paste the JSON policy above
-5. Name it `BedrockAgentCorePolicy`
+5. Name it `BedrockAgentCoreLabsPolicy`
 6. Click **"Create policy"**
 
-**Option 2: Attach to IAM Role**
-
-1. Go to [IAM Console > Roles](https://console.aws.amazon.com/iam/home#/roles)
-2. Select your role
-3. Click **"Add permissions"** → **"Create inline policy"**
-4. Paste the JSON policy above
-5. Name it `BedrockAgentCorePolicy`
-6. Click **"Create policy"**
-
-**Option 3: Create Managed Policy**
+**Option 2: Create Managed Policy via CLI**
 
 ```bash
 # Save policy to file
-cat > bedrock-agentcore-policy.json << 'EOF'
+cat > bedrock-agentcore-labs-policy.json << 'EOF'
 {
   "Version": "2012-10-17",
   "Statement": [
-    # ... paste policy here ...
+    ... paste policy here ...
   ]
 }
 EOF
 
 # Create managed policy
 aws iam create-policy \
-  --policy-name BedrockAgentCorePolicy \
-  --policy-document file://bedrock-agentcore-policy.json
+  --policy-name BedrockAgentCoreLabsPolicy \
+  --policy-document file://bedrock-agentcore-labs-policy.json
 
 # Attach to user
 aws iam attach-user-policy \
   --user-name your-username \
-  --policy-arn arn:aws:iam::123456789012:policy/BedrockAgentCorePolicy
+  --policy-arn arn:aws:iam::123456789012:policy/BedrockAgentCoreLabsPolicy
 ```
+
+---
 
 ## Deployment Permissions
 
-Additional permissions required for deploying agents to AWS Bedrock AgentCore Runtime.
+Additional permissions required for deploying agents to AWS Bedrock AgentCore Runtime using the starter toolkit (CLI).
 
-### Required Actions
+**AWS Documentation:** [IAM Permissions for AgentCore Runtime](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-permissions.html)
+
+### Starter Toolkit Permissions
+
+These permissions allow the `agentcore` CLI to build and deploy your agent:
 
 ```json
 {
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "ECRAccess",
+      "Sid": "IAMRoleManagement",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:GetRole",
+        "iam:PutRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy",
+        "iam:TagRole",
+        "iam:ListRolePolicies",
+        "iam:ListAttachedRolePolicies"
+      ],
+      "Resource": [
+        "arn:aws:iam::*:role/*BedrockAgentCore*",
+        "arn:aws:iam::*:role/service-role/*BedrockAgentCore*"
+      ]
+    },
+    {
+      "Sid": "CodeBuildProjectAccess",
+      "Effect": "Allow",
+      "Action": [
+        "codebuild:StartBuild",
+        "codebuild:BatchGetBuilds",
+        "codebuild:ListBuildsForProject",
+        "codebuild:CreateProject",
+        "codebuild:UpdateProject",
+        "codebuild:BatchGetProjects"
+      ],
+      "Resource": [
+        "arn:aws:codebuild:*:*:project/bedrock-agentcore-*",
+        "arn:aws:codebuild:*:*:build/bedrock-agentcore-*"
+      ]
+    },
+    {
+      "Sid": "CodeBuildListAccess",
+      "Effect": "Allow",
+      "Action": [
+        "codebuild:ListProjects"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "IAMPassRoleAccess",
+      "Effect": "Allow",
+      "Action": [
+        "iam:PassRole"
+      ],
+      "Resource": [
+        "arn:aws:iam::*:role/AmazonBedrockAgentCore*",
+        "arn:aws:iam::*:role/service-role/AmazonBedrockAgentCore*"
+      ]
+    },
+    {
+      "Sid": "CloudWatchLogsAccess",
+      "Effect": "Allow",
+      "Action": [
+        "logs:GetLogEvents",
+        "logs:DescribeLogGroups",
+        "logs:DescribeLogStreams"
+      ],
+      "Resource": [
+        "arn:aws:logs:*:*:log-group:/aws/bedrock-agentcore/*",
+        "arn:aws:logs:*:*:log-group:/aws/codebuild/*"
+      ]
+    },
+    {
+      "Sid": "S3Access",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:ListBucket",
+        "s3:CreateBucket",
+        "s3:PutLifecycleConfiguration"
+      ],
+      "Resource": [
+        "arn:aws:s3:::bedrock-agentcore-*",
+        "arn:aws:s3:::bedrock-agentcore-*/*"
+      ]
+    },
+    {
+      "Sid": "ECRRepositoryAccess",
       "Effect": "Allow",
       "Action": [
         "ecr:CreateRepository",
         "ecr:DescribeRepositories",
-        "ecr:GetAuthorizationToken",
+        "ecr:GetRepositoryPolicy",
+        "ecr:InitiateLayerUpload",
+        "ecr:CompleteLayerUpload",
+        "ecr:PutImage",
+        "ecr:UploadLayerPart",
         "ecr:BatchCheckLayerAvailability",
         "ecr:GetDownloadUrlForLayer",
         "ecr:BatchGetImage",
-        "ecr:PutImage",
-        "ecr:InitiateLayerUpload",
-        "ecr:UploadLayerPart",
-        "ecr:CompleteLayerUpload"
+        "ecr:ListImages",
+        "ecr:TagResource"
       ],
-      "Resource": "*"
+      "Resource": [
+        "arn:aws:ecr:*:*:repository/bedrock-agentcore-*"
+      ]
     },
     {
-      "Sid": "CodeBuildAccess",
+      "Sid": "ECRAuthorizationAccess",
       "Effect": "Allow",
       "Action": [
-        "codebuild:CreateProject",
-        "codebuild:UpdateProject",
-        "codebuild:DeleteProject",
-        "codebuild:BatchGetProjects",
-        "codebuild:StartBuild",
-        "codebuild:BatchGetBuilds"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "IAMAccess",
-      "Effect": "Allow",
-      "Action": [
-        "iam:CreateRole",
-        "iam:AttachRolePolicy",
-        "iam:GetRole",
-        "iam:PassRole"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "CloudWatchAccess",
-      "Effect": "Allow",
-      "Action": [
-        "logs:CreateLogGroup",
-        "logs:CreateLogStream",
-        "logs:PutLogEvents",
-        "logs:DescribeLogGroups",
-        "logs:DescribeLogStreams"
+        "ecr:GetAuthorizationToken"
       ],
       "Resource": "*"
     },
@@ -457,19 +800,37 @@ Additional permissions required for deploying agents to AWS Bedrock AgentCore Ru
 }
 ```
 
+> **Note:** These permissions are designed for development and testing. For production, create custom policies following least-privilege principles.
+
+
 ### Execution Role for Deployed Agents
 
-When agents are deployed, they run with an IAM execution role. This role needs the same Bedrock permissions as local development:
+When agents are deployed, they run with an IAM execution role. This role needs permissions to:
+- Invoke Bedrock models
+- Write logs to CloudWatch
+- Send traces to X-Ray
+- Access ECR for container images
 
 ```json
 {
   "Version": "2012-10-17",
   "Statement": [
     {
+      "Sid": "BedrockModelInvocation",
       "Effect": "Allow",
       "Action": [
         "bedrock:InvokeModel",
-        "bedrock:InvokeModelWithResponseStream",
+        "bedrock:InvokeModelWithResponseStream"
+      ],
+      "Resource": [
+        "arn:aws:bedrock:*::foundation-model/*",
+        "arn:aws:bedrock:us-east-1:123456789012:*"
+      ]
+    },
+    {
+      "Sid": "BedrockFeatures",
+      "Effect": "Allow",
+      "Action": [
         "bedrock:ApplyGuardrail",
         "bedrock:GetGuardrail",
         "bedrock:Retrieve",
@@ -479,19 +840,113 @@ When agents are deployed, they run with an IAM execution role. This role needs t
       "Resource": "*"
     },
     {
+      "Sid": "CloudWatchLogs",
       "Effect": "Allow",
       "Action": [
         "logs:CreateLogGroup",
+        "logs:DescribeLogStreams"
+      ],
+      "Resource": [
+        "arn:aws:logs:us-east-1:123456789012:log-group:/aws/bedrock-agentcore/runtimes/*"
+      ]
+    },
+    {
+      "Sid": "CloudWatchLogStreams",
+      "Effect": "Allow",
+      "Action": [
         "logs:CreateLogStream",
         "logs:PutLogEvents"
       ],
-      "Resource": "arn:aws:logs:*:*:*"
+      "Resource": [
+        "arn:aws:logs:us-east-1:123456789012:log-group:/aws/bedrock-agentcore/runtimes/*:log-stream:*"
+      ]
+    },
+    {
+      "Sid": "CloudWatchLogGroupsDescribe",
+      "Effect": "Allow",
+      "Action": [
+        "logs:DescribeLogGroups"
+      ],
+      "Resource": [
+        "arn:aws:logs:us-east-1:123456789012:log-group:*"
+      ]
+    },
+    {
+      "Sid": "XRayTracing",
+      "Effect": "Allow",
+      "Action": [
+        "xray:PutTraceSegments",
+        "xray:PutTelemetryRecords",
+        "xray:GetSamplingRules",
+        "xray:GetSamplingTargets"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "CloudWatchMetrics",
+      "Effect": "Allow",
+      "Action": "cloudwatch:PutMetricData",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "cloudwatch:namespace": "bedrock-agentcore"
+        }
+      }
+    },
+    {
+      "Sid": "ECRImageAccess",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:BatchGetImage",
+        "ecr:GetDownloadUrlForLayer"
+      ],
+      "Resource": [
+        "arn:aws:ecr:us-east-1:123456789012:repository/*"
+      ]
+    },
+    {
+      "Sid": "ECRTokenAccess",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:GetAuthorizationToken"
+      ],
+      "Resource": "*"
     }
   ]
 }
 ```
 
-The AgentCore CLI can automatically create this role with `execution_role_auto_create: true` in `.bedrock_agentcore.yaml`.
+### Execution Role Trust Policy
+
+The execution role must trust the AgentCore service:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AssumeRolePolicy",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "bedrock-agentcore.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": {
+          "aws:SourceAccount": "123456789012"
+        },
+        "ArnLike": {
+          "aws:SourceArn": "arn:aws:bedrock-agentcore:us-east-1:123456789012:*"
+        }
+      }
+    }
+  ]
+}
+```
+
+> **Tip:** The AgentCore CLI can automatically create this role with `execution_role_auto_create: true` in `.bedrock_agentcore.yaml`.
+
+---
 
 ## Troubleshooting Permissions
 
@@ -521,6 +976,12 @@ The AgentCore CLI can automatically create this role with `execution_role_auto_c
 
 **Solution**: Add `bedrock-agent-runtime:GetMemory` and `bedrock-agent-runtime:PutMemory` to your IAM policy
 
+#### Error: "User is not authorized to perform: logs:CreateLogGroup"
+
+**Cause**: Missing CloudWatch Logs permissions (Lab 3/4 tracing)
+
+**Solution**: Add CloudWatch Logs permissions for the `/aws/bedrock-agentcore/*` log group pattern
+
 #### Error: "Access denied to model"
 
 **Cause**: Model access not enabled in Bedrock Console
@@ -540,6 +1001,7 @@ The AgentCore CLI can automatically create this role with `execution_role_auto_c
 2. Check the resource exists in the correct region
 3. Verify your IAM policy includes the resource ARN
 4. Check resource-based policies (if any)
+
 
 ### Verifying Permissions
 
@@ -568,6 +1030,11 @@ aws bedrock-agent-runtime retrieve \
 aws bedrock-agent-runtime get-memory \
   --memory-id MEM123ABC \
   --region us-east-1
+
+# Test CloudWatch Logs access (Lab 3/4)
+aws logs describe-log-groups \
+  --log-group-name-prefix /aws/bedrock-agentcore/ \
+  --region us-east-1
 ```
 
 ### IAM Policy Simulator
@@ -588,6 +1055,8 @@ Enable CloudTrail to see detailed permission denial logs:
 2. Create a trail if you don't have one
 3. Look for `AccessDenied` events
 4. Review the event details to see which permission was denied
+
+---
 
 ## Best Practices
 
@@ -636,7 +1105,8 @@ For multi-user environments, use permission boundaries to limit maximum permissi
       "Effect": "Allow",
       "Action": [
         "bedrock:*",
-        "bedrock-agent-runtime:*"
+        "bedrock-agent-runtime:*",
+        "bedrock-agentcore:*"
       ],
       "Resource": "*"
     }
@@ -644,9 +1114,14 @@ For multi-user environments, use permission boundaries to limit maximum permissi
 }
 ```
 
+---
+
 ## Additional Resources
 
 - [AWS Bedrock IAM Documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/security-iam.html)
+- [AgentCore Runtime Permissions](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-permissions.html)
+- [AgentCore Evaluations Prerequisites](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/evaluations-prerequisites.html)
+- [BedrockAgentCoreFullAccess Policy](https://docs.aws.amazon.com/aws-managed-policy/latest/reference/BedrockAgentCoreFullAccess.html)
 - [IAM Best Practices](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html)
 - [AWS Policy Generator](https://awspolicygen.s3.amazonaws.com/policygen.html)
 - [IAM Policy Simulator](https://policysim.aws.amazon.com/)
