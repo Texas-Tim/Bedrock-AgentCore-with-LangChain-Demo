@@ -150,7 +150,7 @@ export MEMORY_ID=$(aws bedrock-agentcore-control list-memories --region us-east-
 echo "Memory ID: $MEMORY_ID"
 
 # Run the configuration wizard:
-agentcore configure -e agent.py -n langgraph_feature_demo -r us-east-1 --non-interactive
+agentcore configure -e agent.py -n langgraph_feature_demo -r us-east-1 --non-interactive --disable-memory
 
 # Deploy with Memory ID to enable conversation persistence, or leave out the ID line if desired
 agentcore launch \
@@ -180,6 +180,25 @@ aws iam put-role-policy \
         "Effect": "Allow",
         "Action": ["bedrock:Retrieve"],
         "Resource": ["arn:aws:bedrock:us-east-1:'$(aws sts get-caller-identity --query Account --output text)':knowledge-base/*"]
+      }
+    ]
+  }'
+
+# Add Memory access policy
+aws iam put-role-policy \
+  --role-name $AGENT_ROLE \
+  --policy-name MemoryAccessPolicy \
+  --policy-document '{
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "bedrock-agentcore:ListEvents",
+          "bedrock-agentcore:CreateEvent",
+          "bedrock-agentcore:GetEvent"
+        ],
+        "Resource": ["arn:aws:bedrock-agentcore:us-east-1:'$(aws sts get-caller-identity --query Account --output text)':memory/*"]
       }
     ]
   }'
