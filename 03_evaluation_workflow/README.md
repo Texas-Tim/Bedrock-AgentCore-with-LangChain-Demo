@@ -62,7 +62,7 @@ AgentCore provides built-in observability including logs and basic metrics. For 
 
 ```bash
 # Configure deployment
-agentcore configure -e agent.py -n langgraph_eval_agent -r us-east-1 --non-interactive
+agentcore configure -e agent.py -n langgraph_eval_agent -r us-east-1 --non-interactive --disable-memory
 
 # Build dependencies and deploy agent to AWS
 agentcore launch
