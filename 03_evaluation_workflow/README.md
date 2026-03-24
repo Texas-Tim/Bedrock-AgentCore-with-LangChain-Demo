@@ -237,7 +237,10 @@ Remove all AWS resources created by this deployment:
 agentcore destroy --force
 
 # Delete Cloudwatch log groups
-aws logs describe-log-groups --log-group-name-prefix /aws/bedrock-agentcore/runtimes/ --query 'logGroups[].logGroupName' --output text
+for log_group in $(aws logs describe-log-groups --log-group-name-prefix /aws/bedrock-agentcore/runtimes/ --query 'logGroups[].logGroupName' --output text); do
+  echo "Deleting $log_group"
+  aws logs delete-log-group --log-group-name "$log_group"
+done
 
 agentcore eval online delete --config-id $EVAL_CONFIG_ID
 ```
