@@ -23,4 +23,4 @@ aws-opentelemetry-distro>=0.16.0,<1.0.0
 # The Evaluate API requires spans with scope 'opentelemetry.instrumentation.langchain'
 # Note: Version 0.53.x has a bug - missing GenAICustomOperationName insemconv_ai
 # Pin to 0.52.6 which works with current opentelemetry-semantic-conventions-ai 
-opentelemetry-instrumentation-langchian>=0.52.6,<0.53.0
+opentelemetry-instrumentation-langchain>=0.53.0,<1.0.0
