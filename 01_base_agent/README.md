@@ -125,7 +125,7 @@ The `@app.entrypoint` decorator marks the main request handler for AgentCore. Th
 - **Yields responses** - Uses python generators for token streaming
 - **Handles errors** - Catches exceptions and returns error messages
 
-The handler extracts the prompt, invokes the LangGraph agent, and streams response tokens back to teh caller. The `stream_mode="messages"` parameter enables chunk-by-chunk streaming.
+The handler extracts the prompt, invokes the LangGraph agent, and streams response tokens back to the caller. The `stream_mode="messages"` parameter enables chunk-by-chunk streaming.
 
 ### Tools
 
