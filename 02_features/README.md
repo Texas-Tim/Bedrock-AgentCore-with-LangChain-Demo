@@ -75,7 +75,7 @@ aws bedrock create-guardrail-version \
 
 # Export version for deployment
 export GUARDRAIL_VERSION="1"
-echo $GUARDRAIL_VERSION
+echo "GuardRail ID: $GUARDRAIL_VERSION"
 ```
 
 ---
