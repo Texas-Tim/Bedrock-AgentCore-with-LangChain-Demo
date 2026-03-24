@@ -19,7 +19,7 @@ from typing import AsyncGenerator
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from langchain_aws import ChatBedrock
 from langchain_core.tools import tool
-from langchain.prebuilt import create_react_agent 
+from langgraph.prebuilt import create_react_agent 
 
 # Configure logging
 logging.basicConfig(
