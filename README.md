@@ -51,7 +51,8 @@ agentcore configure \
   -e agent.py \
   -n langgraph_lab_agent \
   -r us-east-1 \
-  --non-interactive
+  --non-interactive \
+  --disable-memory
 
 agentcore launch
 
@@ -73,7 +74,8 @@ agentcore configure \
   -e agent.py \
   -n langgraph_features_agent \
   -r us-east-1 \
-  --non-interactive
+  --non-interactive \
+  --disable-memory
 
 agentcore launch \
    --env BEDROCK_GUARDRAIL_ID=$GUARDRAIL_ID \
@@ -99,7 +101,8 @@ agentcore configure \
    -e agent.py \
    -n langgraph_eval_agent \
    -r us-east-1 \
-   --non-interactive
+   --non-interactive \
+   --disable-memory
 
 agentcore launch
 
@@ -123,10 +126,11 @@ cd 04_strands_evaluation
 
 # Configure and deploy Strands agent
 agentcore configure \
-   -e agent.py
-   -n strands_eval_agent
-   -r us-east-1
-   --non-interactive
+   -e agent.py \
+   -n strands_eval_agent \
+   -r us-east-1 \
+   --non-interactive \
+   --disable-memory
 
 agentcore launch
 
