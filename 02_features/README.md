@@ -246,7 +246,7 @@ agentcore destroy --force
 aws bedrock delete-guardrail --guardrail-identifier $GUARDRAIL_ID
 
 # Delete Memory
-aws bedrock-agent delete-memory --memory-id $MEMORY_ID
+agentcore memory delete $MEMORY_ID --region us-east-1 --wait
 
 # Delete Cloudwatch log groups
 aws logs describe-log-groups --log-group-name-prefix /aws/bedrock-agentcore/runtimes/ --query 'logGroups[].logGroupName' --output text
