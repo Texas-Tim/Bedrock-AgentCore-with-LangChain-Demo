@@ -167,6 +167,7 @@ The agent's IAM role needs permission to query the Knowledge Base. Run this afte
 ```bash
 # Get the agent's execution role name (use awk to handle tab-separated output if multiple roles exist)
 export AGENT_ROLE=$(aws iam list-roles --query "Roles[?contains(RoleName, 'AgentCoreSDKRuntime')].RoleName" --output text | awk '{print $1}')
+echo "Agent Role: $AGENT_ROLE"
 
 # Add Knowledge Base access policy
 aws iam put-role-policy \
