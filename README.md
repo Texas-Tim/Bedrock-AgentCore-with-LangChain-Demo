@@ -13,9 +13,6 @@ Lab 1: Deploy Basic Agent       Lab 2: Add Features              Lab 3: LangGrap
 │                       │      │ • Deploy with all     │     │ • (Known Limitations) │    │                       │
 │                       │      │   features            │     │                       │    │                       │
 └───────────────────────┘      └───────────────────────      └───────────────────────┘    └───────────────────────┘
-                                                                         │                            ▲
-                                                                         │    If evaluations needed   │
-                                                                         └────────────────────────────┘
 ```
 
 ### Prerequistes
