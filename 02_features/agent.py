@@ -269,6 +269,7 @@ if kb_tool:
 # user inputs and model outputs. When content violates a policy, Bedrock
 # raises an exception that we handle gracefully in the handle_request function.
 
+guardrails_config = None
 if ENABLE_GUARDRAILS:
     # trace="enabled" logs guardrail decisions for debugging
     # Docs: https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails-trace.html
