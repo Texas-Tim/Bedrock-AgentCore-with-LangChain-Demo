@@ -32,6 +32,7 @@ import logging
 from typing import AsyncGenerator
 from opentelemetry.instrumentation.langchain import LangchainInstrumentor
 
+
 # AgentCore Evaluations requires spans with specific scopes:
 #     - 'opentelemetry.instrumentation.langchain'
 #     - 'openinference.instrumentation.langchain'
@@ -45,6 +46,9 @@ from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from langchain_aws import ChatBedrock
 from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
+
+# Initialize LangChain instrumentation for OpenTelemetry tracing
+LangchainInstrumentor().instrument()
 
 # ============================================================================
 # LOGGING CONFIGURATION
