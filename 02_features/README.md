@@ -150,7 +150,7 @@ export MEMORY_ID=$(aws bedrock-agentcore-control list-memories --region us-east-
 echo "Memory ID: $MEMORY_ID"
 
 # Run the configuration wizard:
-agentcore configure -e agent_with_all_features.py -n langgraph_full_demo -r us-east-1 --non-interactive
+agentcore configure -e agent.py -n langgraph_feature_demo -r us-east-1 --non-interactive
 
 # Deploy with Memory ID to enable conversation persistence, or leave out the ID line if desired
 agentcore launch \
