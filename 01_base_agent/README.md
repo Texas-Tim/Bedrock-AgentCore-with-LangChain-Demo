@@ -163,7 +163,8 @@ agentcore configure \
  -e agent.py \
  -n langgraph_demo \
  -r us-east-1 \
- --non-interactive
+ --non-interactive \
+ --disable-memory
 ```
 
 **What this command does:**
