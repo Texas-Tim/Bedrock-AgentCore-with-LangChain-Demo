@@ -33,6 +33,9 @@ from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from strands import Agent, tool
 from strands.models import BedrockModel
 
+# Initialize StrandsTelemetry to enable OTEL tracing
+StrandsTelemetry().setup_otlp_exporter()
+
 # ============================================================================
 # LOGGING CONFIGURATION
 # ============================================================================
