@@ -61,7 +61,7 @@ Strands Agents automatically produces spans with `strands.telemetry.tracer` scop
 
 ```bash
 # Configure deployment
-agentcore configure -e agent.py -n strands_eval_agent -r us-east-1 --non-interactive
+agentcore configure -e agent.py -n strands_eval_agent -r us-east-1 --non-interactive --disable-memory
 
 # Build dependencies and deploy agent to AWS
 agentcore launch
