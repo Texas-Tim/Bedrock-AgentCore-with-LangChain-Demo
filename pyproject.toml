@@ -22,7 +22,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["shared"]
+source = ["01_base_agent", "02_features", "03_evaluation_workflow", "04_strands_evaluation"]
 branch = true
 omit = [
     "tests/*",
@@ -34,7 +34,7 @@ exclude_lines = [
     "pragma: no cover",
     "def __repr__",
     "raise NotImplementedError",
-    "if TYPE_CHEKCING:",
+    "if TYPE_CHECKING:",
 ]
 
 [tool.mypy]
