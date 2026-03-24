@@ -41,7 +41,16 @@ Strands Agents automatically produces spans with `strands.telemetry.tracer` scop
 
 
 ```
-
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────────┐
+│  Strands Agent  │────▶│  CloudWatch      │────▶│  AgentCore          │
+│  (deployed)     │     │  (Logs/Metrics)  │     │  Evaluations ✅     │
+└─────────────────┘     └──────────────────┘     └─────────────────────┘
+        │                                                  │
+        │ strands.telemetry.tracer                         ▼
+        │ (fully supported)                       ┌─────────────────────┐
+        └────────────────────────────────────────▶│  Actual Scores!     │
+                                                  │  Helpfulness: 0.85  │
+                                                  └─────────────────────┘
 ```
 
 
