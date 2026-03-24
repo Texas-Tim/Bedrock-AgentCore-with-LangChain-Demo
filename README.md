@@ -205,8 +205,11 @@ agentcore memory delete $MEMORY_ID --region us-east-1 --wait
 agentcore eval online delete --name lab_eval_config
 agentcore eval online delete --name strands_eval_config
 
-# Delete Cloudwatch log groups (replace AGENT_ID with actual IDs)
-aws logs describe-log-groups --log-group-name-prefix /aws/bedrock-agentcore/runtimes/ --query 'logGroups[].logGroupName' --output text
+# Delete Cloudwatch log groups
+for log_group in $(aws logs describe-log-groups --log-group-name-prefix /aws/bedrock-agentcore/runtimes/ --query 'logGroups[].logGroupName' --output text); do
+  echo "Deleting $log_group"
+  aws logs delete-log-group --log-group-name "$log_group"
+done
 
 # aws logs delete-log-group --log-group-name /aws/bedrock-agentcore/runtimes/{AGENT_ID}-DEFAULT
 
