@@ -94,7 +94,7 @@ agentcore invoke '{"prompt": "Hello, what can you help me with?"}'
 
 The dashboard provides three views
 
-| View | Descripton |
+| View | Description |
 |------|------------|
 | **Agents View** | Lists all agents with runtime metrics |
 | **Sessions View** | Shows all conversation sessions |
@@ -174,7 +174,7 @@ Online evaluation automatically samples live traffic and evaluates it continuous
 ```bash
 agentcore eval online create \
   --name lab_eval_config \
-  --samplint-rate 10.0 \
+  --sampling-rate 10.0 \
   --evaluator "Builtin.Helpfulness" \
   --evaluator "Builtin.GoalSuccessRate" \
   --description "Lab 3 evaluation config"
