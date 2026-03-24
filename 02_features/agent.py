@@ -317,7 +317,7 @@ if ENABLE_MEMORY:
 agent = create_react_agent(
     model=llm,
     tools=tools,
-    system_prompt=SYSTEM_PROMPT,
+    prompt=SYSTEM_PROMPT,
     checkpointer=checkpointer,  # None if memory is disabled or initialization failed
 )
 
