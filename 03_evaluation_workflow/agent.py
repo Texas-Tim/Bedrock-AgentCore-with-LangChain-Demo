@@ -26,6 +26,7 @@ AWS Documentation References ...
 - LangGraph Checkpointing: https://langchain-ai.github.io/langgraph/concepts/persistence/
 """
 
+import os
 import json
 import logging
 from typing import AsyncGenerator
@@ -67,8 +68,7 @@ try:
         load_dotenv(_local_dotenv)
         logger.info("Loaded .env for local development")
     else:
-        logger.debug("No .env file found; create 
-        agent/.env from .env.example for local testing")
+        logger.debug("No .env file found; create agent/.env from .env.example for local testing")
 except ImportError:
     pass
 
@@ -147,7 +147,7 @@ async def handle_request(payload: dict, **kwargs) -> AsyncGenerator[str, None]:
     
     try:
         # Stream the agent's response
-        async for event in agent.astream(input_data, config=config, stream_mode="messages"):
+        async for event in agent.astream(input_data, stream_mode="messages"):
             if isinstance(event, tuple) and len(event) >= 2:
                 chunk, metadata = event[0], event[1]
                 # Only yield AI model text responses, skip tool calls and tool results
