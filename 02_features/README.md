@@ -269,7 +269,10 @@ aws bedrock delete-guardrail --guardrail-identifier $GUARDRAIL_ID
 agentcore memory delete $MEMORY_ID --region us-east-1 --wait
 
 # Delete Cloudwatch log groups
-aws logs describe-log-groups --log-group-name-prefix /aws/bedrock-agentcore/runtimes/ --query 'logGroups[].logGroupName' --output text
+for log_group in $(aws logs describe-log-groups --log-group-name-prefix /aws/bedrock-agentcore/runtimes/ --query 'logGroups[].logGroupName' --output text); do
+  echo "Deleting $log_group"
+  aws logs delete-log-group --log-group-name "$log_group"
+done
 
 # Delete S3 Bucket
 aws s3 rb s3://langgraph-lab-kb-$(aws sts get-caller-identity --query Account --output text) --force
