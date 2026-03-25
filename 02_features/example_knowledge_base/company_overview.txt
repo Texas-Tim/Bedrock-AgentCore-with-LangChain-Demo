@@ -1,0 +1,18 @@
+AcmeCorp Company Overview
+
+Founded: 2015
+Headquarters: Seattle, Washington
+Employees: 2,500+
+Industry: Enterprise Software Solutions
+
+Mission Statement:
+Empowering businesses through innovative cloud-based solutions that streamline operations and drive growth.
+
+Core Values:
+- Innovation: Continuously pushing technological boundaries
+- Customer Success: Putting client needs first
+- Integrity: Operating with transparency and ethical standards
+- Collaboration: Building strong partnerships internally and externally
+
+Business Focus:
+AcmeCorp specializes in enterprise resource planning (ERP) software, customer relationship management (CRM) tools, and data analytics platforms for mid-to-large sized organizations across retail, manufacturing, and healthcare sectors.
