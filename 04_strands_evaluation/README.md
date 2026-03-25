@@ -118,7 +118,7 @@ To view logs:
 ```bash
 # Export the agent ID
 export AGENT_ID=$(aws bedrock-agentcore-control list-agent-runtimes --region us-east-1 \
-  --query "agentRuntimes[?agentRuntimeName=='langgraph_eval_agent'].agentRuntimeId" --output text)
+  --query "agentRuntimes[?agentRuntimeName=='strands_eval_agent'].agentRuntimeId" --output text)
 echo $AGENT_ID
 
 # View recent logs
