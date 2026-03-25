@@ -12,7 +12,7 @@
 
 set -e
 
-AGENT_NAME="${1:-langgraph_eval_agent}"
+AGENT_NAME="${1:-strands_eval_agent}"
 DEPS_DIR=".bedrock_agentcore/${AGENT_NAME}"
 DEPS_ZIP="${DEPS_DIR}/dependencies.zip"
 
