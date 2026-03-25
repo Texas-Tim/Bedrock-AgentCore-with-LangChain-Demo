@@ -114,7 +114,7 @@ tools = [get_weather, calculate]
 agent = Agent(
     model=model,
     tools=tools,
-    prompt=SYSTEM_PROMPT,
+    system_prompt=SYSTEM_PROMPT,
 )
 
 # ============================================================================
