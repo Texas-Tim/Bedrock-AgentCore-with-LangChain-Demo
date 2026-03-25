@@ -91,7 +91,7 @@ Knowledge Bases enable RAG (Retrieval Augmented Generation) - your agent can sea
 aws s3 mb s3://langgraph-lab-kb-$(aws sts get-caller-identity --query Account --output text)
 
 # Upload example documents
-aws s3 sync ../example_knowledge_base/ s3://langgraph-lab-kb-$(aws sts get-caller-identity --query Account --output text)
+aws s3 sync example_knowledge_base/ s3://langgraph-lab-kb-$(aws sts get-caller-identity --query Account --output text)
 ```
 
 ### Step 2.2: Create Knowledge Base via Console
