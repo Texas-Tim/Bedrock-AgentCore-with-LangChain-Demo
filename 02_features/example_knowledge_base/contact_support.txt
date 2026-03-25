@@ -1,0 +1,25 @@
+AcmeCorp Contact Information
+
+General Inquiries:
+Email: info@acmecorp.com
+Phone: 1-800-555-ACME (2263)
+Hours: Monday-Friday, 6am-6pm PST
+
+Sales Department:
+Email: sales@acmecorp.com
+Phone: 1-800-555-2264
+Request a demo: www.acmecorp.com/demo
+
+Technical Support:
+Email: support@acmecorp.com
+Phone: 1-800-555-2265
+Support Portal: support.acmecorp.com
+Hours: 24/7 for premium customers, business hours for standard
+
+Office Locations:
+Headquarters: 1500 Innovation Way, Seattle, WA 98101
+Regional Offices: Austin TX, Boston MA, Chicago IL, San Francisco CA
+
+Social Media:
+LinkedIn: linkedin.com/company/acmecorp
+Twitter: @AcmeCorp
