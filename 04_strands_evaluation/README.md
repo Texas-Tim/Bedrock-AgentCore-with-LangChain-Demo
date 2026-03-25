@@ -199,11 +199,9 @@ Parameters:
 agentcore eval online list | grep strands_eval_config
 
 # Export the config ID
-export EVAL_CONFIG_ID=$(agentcore eval online list 2>/dev/null | grep -oE '[a-z_]+-[A-Za-z0-9]+' | head -1)
+agentcore eval online list --output /tmp/eval_configs.json 2>/dev/null
+export STRANDS_CONFIG_ID=$(cat /tmp/eval_configs.json | python3 -c "import sys,json; print(json.load(sys.stdin)['onlineEvaluationConfigs'][0]['onlineEvaluationConfigId'])" 2>/dev/null)
 echo "Evaluation Config ID: $STRANDS_CONFIG_ID"
-
-# Get details for the config
-agentcore eval online get --config-id $STRANDS_CONFIG_ID
 ```
 
 ### Step 4.3: Generate Traffic for Evaluation
