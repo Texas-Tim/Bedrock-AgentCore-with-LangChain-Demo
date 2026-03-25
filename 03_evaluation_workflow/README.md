@@ -66,6 +66,12 @@ agentcore configure -e agent.py -n langgraph_eval_agent -r us-east-1 --non-inter
 
 # Build dependencies and deploy agent to AWS
 agentcore launch
+
+# Run Shebang script to fix a dependencies issue (bug)
+./fix_otel_shebang.sh
+
+# Launch agentcore again with fixed dependencies
+agentcore launch
 ```
 
 ### Step 1.2: Generate Traffic
