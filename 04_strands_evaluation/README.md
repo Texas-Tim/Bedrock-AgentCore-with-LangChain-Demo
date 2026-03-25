@@ -61,7 +61,7 @@ Strands Agents automatically produces spans with `strands.telemetry.tracer` scop
 
 ```bash
 # Configure deployment
-agentcore configure -e agent.py -n strands_eval_agent -r us-east-1 --non-interactive --disable-memory
+agentcore configure -e agent.py -n langgraph_eval_agent -r us-east-1 --non-interactive --disable-memory
 
 # Build dependencies and deploy agent to AWS
 agentcore launch
@@ -75,6 +75,15 @@ Run several queries to generate trace data:
 agentcore invoke '{"prompt": "What is the weather in Seattle?"}'
 agentcore invoke '{"prompt": "What is 15*7?"}'
 agentcore invoke '{"prompt": "Hello, what can you help me with?"}'
+
+# If the invocation fails at this point and you're using a venv, it's likely due to a bug in how agentcore tracks the path to the dependencies. Use the following script to fix the paths and relaunch
+# Run Shebang script to fix a dependencies issue (bug)
+./fix_otel_shebang.sh
+
+# Launch agentcore again with fixed dependencies
+agentcore launch
+
+# Then run the `invoke` commands again
 ```
 
 ---
