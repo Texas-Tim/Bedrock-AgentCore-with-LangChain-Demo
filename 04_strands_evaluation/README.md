@@ -182,7 +182,7 @@ Online evaluation automatically samples live traffic and evaluates it continuous
 ```bash
 agentcore eval online create \
   --name strands_eval_config \
-  --samplint-rate 10.0 \
+  --sampling-rate 10.0 \
   --evaluator "Builtin.Helpfulness" \
   --evaluator "Builtin.GoalSuccessRate" \
   --description "Lab 4 Strands evaluation config"
