@@ -9,17 +9,17 @@ Lab 1: Deploy Basic Agent       Lab 2: Add Features              Lab 3: LangGrap
 │ • Set up environment  │─────▶│ • Create GuardRail    │────▶│ • OpenTelemetry       │    
 │ • Deploy to AgentCore │      │ • Create Knowledge    │     │   Tracing             │   
 │ • Test via CLI/SDK    │      │   Base                │     │ • Online Evaluation   │    
-│                       │      │ • Add Memory          │     │ • GenAI Dashboard     │    
-│                       │      │ • Deploy with all     │     │ • (Known Limitations) │    
+│                       │      │ • Add Memory          │     │                       │    
+│                       │      │ • Deploy with all     │     │                       │    
 │                       │      │   features            │     │                       │    
 └───────────────────────┘      └───────────────────────      └───────────────────────┘   
 
 Lab 4: Strands Eval
 ┌───────────────────────┐
 │ • Strands Agent       │
-│ • Working Evaluations │
-│ • On-demand & Online  │
+| • On-demand & Online  │
 │ • Full API Support    │
+│                       │
 │                       │
 │                       │
 └───────────────────────┘
