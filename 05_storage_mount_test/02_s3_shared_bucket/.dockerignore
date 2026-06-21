@@ -1,0 +1,5 @@
+.bedrock_agentcore*
+__pycache__
+*.pyc
+.venv
+.env

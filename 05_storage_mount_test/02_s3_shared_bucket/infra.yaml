@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Shared S3 bucket for experiment 02 — writer and reader agents share this bucket.
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: agentcore-shared-s3
+
+Outputs:
+  S3Bucket:
+    Value: !Ref SharedBucket
+    Description: The shared bucket both agents read and write
+  S3AccessPolicyArn:
+    Value: !Ref S3AccessPolicy
+    Description: Managed policy granting S3 access — attach to each agent's execution role
+
+Resources:
+  SharedBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${ProjectName}-${AWS::AccountId}"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  S3AccessPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub "${ProjectName}-s3-access"
+      Description: S3 read/write on the shared bucket for both agents
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:PutObject
+              - s3:GetObject
+              - s3:DeleteObject
+            Resource: !Sub "arn:aws:s3:::${SharedBucket}/*"
+          - Effect: Allow
+            Action:
+              - s3:ListBucket
+            Resource: !GetAtt SharedBucket.Arn
